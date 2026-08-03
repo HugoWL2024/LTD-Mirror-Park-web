@@ -1765,6 +1765,9 @@
             if (resultat.recompensesObtenues && resultat.recompensesObtenues.length > 0) {
                 msgFinal += "\n🎉 Nouvelle(s) récompense(s) débloquée(s) :\n- " + resultat.recompensesObtenues.join("\n- ");
             }
+            if (resultat.stockEnEchec && resultat.stockEnEchec.length > 0) {
+                msgFinal += "\n⚠️ Stock non déduit automatiquement pour : " + resultat.stockEnEchec.join(", ") + "\nÀ corriger manuellement dans Fast Fashion.";
+            }
             alert(msgFinal);
             cart = [];
             remiseActive = false;
@@ -2157,18 +2160,27 @@
                 // fois un même produit présent sur plusieurs lignes du panier.
                 const qteVendueParNom = {};
                 payload.produits.forEach(item => { qteVendueParNom[item.produit] = (qteVendueParNom[item.produit] || 0) + item.qte; });
+                // La facture est déjà enregistrée : un échec de déduction de stock ne
+                // doit pas faire passer la vente pour un échec, sinon le vendeur
+                // rejoue le paiement et crée une facture en double.
+                const stockEnEchec = [];
                 await Promise.all(Object.entries(qteVendueParNom).map(async ([nom, qte]) => {
                     const row = data.find(r => r.c[1]?.v === nom);
                     if (!row) return;
                     const stockSurface = Number(row.c[10]?.v || 0);
-                    // stock_total est une colonne générée par Postgres (somme des 3
-                    // emplacements) : elle se recalcule seule, il ne faut jamais l'écrire.
-                    await ProductService.update(row.c[0].v, {
-                        stock_surface_vente: Math.max(0, stockSurface - qte)
-                    });
+                    try {
+                        // stock_total est une colonne générée par Postgres (somme des 3
+                        // emplacements) : elle se recalcule seule, il ne faut jamais l'écrire.
+                        await ProductService.update(row.c[0].v, {
+                            stock_surface_vente: Math.max(0, stockSurface - qte)
+                        });
+                    } catch (error) {
+                        console.error(`Stock non déduit pour "${nom}" :`, error);
+                        stockEnEchec.push(nom);
+                    }
                 }));
 
-                return { success: true, numeroFacture: invoice.numero };
+                return { success: true, numeroFacture: invoice.numero, stockEnEchec };
             } catch (error) { console.error(error); return { success: false, error: error.message }; }
         }
         

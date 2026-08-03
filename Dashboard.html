@@ -1009,14 +1009,14 @@
             try {
                 const [tVentes, tCharges, tConfig, tHist, tPerf, tEmployes, tTreso, tProduits, tFactures] = await Promise.all([
                     fetch(gvizUrl('VENTES_BRUTES')).then(r => r.text()),
-                    fetch(gvizUrl('💰 Charges')).then(r => r.text()),
+                    fetch(gvizUrl('Charges')).then(r => r.text()),
                     fetch(gvizUrl('CONFIG')).then(r => r.text()),
                     fetch(gvizUrl('HISTORIQUE_SEMAINES')).then(r => r.text()),
                     fetch(gvizUrl('PERFORMANCE_EMPLOYES')).then(r => r.text()),
-                    fetch(gvizUrl('👥 Employés')).then(r => r.text()),
-                    fetch(gvizUrl('💰 Charges', { headers: 0 })).then(r => r.text()),
-                    fetch(gvizUrl('📦 Produits')).then(r => r.text()),
-                    fetch(gvizUrl('🧾 Factures')).then(r => r.text())
+                    fetch(gvizUrl('Employés')).then(r => r.text()),
+                    fetch(gvizUrl('Charges', { headers: 0 })).then(r => r.text()),
+                    fetch(gvizUrl('Produits')).then(r => r.text()),
+                    fetch(gvizUrl('Factures')).then(r => r.text())
                 ]);
 
                 const ventesRows = parseGviz(tVentes);
@@ -1101,7 +1101,7 @@
 
                 startAutoSync();
             } catch (e) {
-                showFatalError('init() a échoué : ' + e.message + ' — vérifie que les onglets CONFIG, VENTES_BRUTES, 💰 Charges, HISTORIQUE_SEMAINES, PERFORMANCE_EMPLOYES et 👥 Employés existent bien et sont accessibles publiquement en lecture.');
+                showFatalError('init() a échoué : ' + e.message + ' — vérifie que les onglets CONFIG, VENTES_BRUTES, Charges, HISTORIQUE_SEMAINES, PERFORMANCE_EMPLOYES et 👥 Employés existent bien et sont accessibles publiquement en lecture.');
             }
         }
 
@@ -1683,7 +1683,7 @@
                     fetch(gvizUrl('CONFIG')).then(r => r.text()),
                     fetch(gvizUrl('HISTORIQUE_SEMAINES')).then(r => r.text()),
                     fetch(gvizUrl('VENTES_BRUTES')).then(r => r.text()),
-                    fetch(gvizUrl('💰 Charges')).then(r => r.text())
+                    fetch(gvizUrl('Charges')).then(r => r.text())
                 ]);
 
                 const configRows = JSON.parse(configRes.substring(47, configRes.length - 2)).table.rows;
@@ -1862,7 +1862,7 @@
                 label.textContent = 'Chargement...';
                 
                 // Récupérer les données des charges
-                const res = await fetch(gvizUrl('💰 Charges'));
+                const res = await fetch(gvizUrl('Charges'));
                 const text = await res.text();
                 const chargesRows = JSON.parse(text.substring(47, text.length - 2)).table.rows;
 
