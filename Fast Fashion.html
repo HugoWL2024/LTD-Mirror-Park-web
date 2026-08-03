@@ -1004,9 +1004,9 @@ function renderDepenses(rows) {
     let total = 0, count = 0;
 
     rows.forEach(row => {
-        if (!row.c[0] || !row.nom) return;
-        const date = row.c[0]?.v || '', categorie = row.c[1]?.v || '', description = row.c[2]?.v || '';
-        const montant = parseFloat(row.c[3]?.v) || 0, commentaire = row.c[4]?.v || '';
+        if (!row.date_charge) return;
+        const date = row.date_charge || '', categorie = row.categorie || '', description = row.description || '';
+        const montant = parseFloat(row.montant) || 0, commentaire = '';
         total += montant; count++;
         body.innerHTML += `<tr><td>${date}</td><td>${categorie}</td><td>${description}</td><td class="montant">${montant.toFixed(2)} $</td><td>${commentaire}</td></tr>`;
     });

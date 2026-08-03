@@ -1964,8 +1964,8 @@
             const groups = {};
             for (let i = 0; i < data.length; i++) {
                 const row = data[i];
-                if (!row.c[1] || !row.valeur.toLowerCase().includes(search)) continue;
-                const cat = row.c[2] ? row.c[2].v : "Divers";
+                if (!row.nom || !row.nom.toLowerCase().includes(search)) continue;
+                const cat = row.categorie || "Divers";
                 if (!groups[cat]) groups[cat] = [];
                 groups[cat].push({ row, i });
             }
@@ -1982,13 +1982,13 @@
             for (let cat in groups) {
                 container.innerHTML += `<div class="cat-group"><h2 class="cat-title">${cat}</h2><div class="grid" id="grid-${cat}"></div></div>`;
                 groups[cat].forEach(item => {
-                    const stock = Number(item.row.c[5]?.v || 0);
-                    const prixPromo = item.row.c[9]?.v;
+                    const stock = Number(item.row.stock_total || 0);
+                    const prixPromo = item.row.prix_promo;
                     const isPromo = prixPromo && Number(prixPromo) > 0;
                     const isDisabled = stock <= 0;
                     const isLow = !isDisabled && stock <= 3;
-                    const price = Math.round(isPromo ? Number(prixPromo) : (item.row.c[3]?.v || 0));
-                    const image = item.row.c[8]?.v || '';
+                    const price = Math.round(isPromo ? Number(prixPromo) : (item.row.prix || 0));
+                    const image = item.row.image_url || '';
                     const stockClass = isDisabled ? 'stock-out' : (isLow ? 'stock-low' : '');
                     const stockLabel = isDisabled ? 'Épuisé' : `Stock : ${stock}`;
 
@@ -1997,7 +1997,7 @@
                             ${isPromo && !isDisabled ? '<span class="promo-tag">PROMO</span>' : ''}
                             ${isDisabled ? '<span class="out-tag">RUPTURE</span>' : ''}
                             <div class="item-img-wrap">${image ? `<img src="${image}">` : ''}</div>
-                            <p class="item-name">${item.row.valeur}</p>
+                            <p class="item-name">${item.row.nom}</p>
                             <p class="item-price">${fmt(price)}</p>
                             <span class="stock-tag ${stockClass}">${stockLabel}</span>
                         </div>`;
@@ -2137,13 +2137,13 @@
                 // rejoue le paiement et crée une facture en double.
                 const stockEnEchec = [];
                 await Promise.all(Object.entries(qteVendueParNom).map(async ([nom, qte]) => {
-                    const row = data.find(r => r.c[1]?.v === nom);
+                    const row = data.find(r => r.nom === nom);
                     if (!row) return;
-                    const stockSurface = Number(row.c[10]?.v || 0);
+                    const stockSurface = Number(row.stock_surface_vente || 0);
                     try {
                         // stock_total est une colonne générée par Postgres (somme des 3
                         // emplacements) : elle se recalcule seule, il ne faut jamais l'écrire.
-                        await ProductService.update(row.nom, {
+                        await ProductService.update(row.id, {
                             stock_surface_vente: Math.max(0, stockSurface - qte)
                         });
                     } catch (error) {

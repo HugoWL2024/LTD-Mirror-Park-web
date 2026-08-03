@@ -1023,11 +1023,11 @@
                 const perfSemaine = {};
                 for (let i = 0; i < ventesRows.length; i++) {
                     const row = ventesRows[i];
-                    if (!row.c[0] || !row.nom) continue;
-                    const date = parseDateFrancaise(row.nom);
+                    if (!row.date_vente) continue;
+                    const date = parseDateFrancaise(row.date_vente);
                     if (!date || date <= derniereCloture) continue;
-                    const total = parseFloat(row.c[9]?.v) || 0;
-                    const salarie = row.c[3]?.v || "Non renseigné";
+                    const total = parseFloat(row.total) || 0;
+                    const salarie = row.employe_nom || "Non renseigné";
                     recetteSemaine += total;
                     if (!employesValides.has(String(salarie).trim())) continue;
                     if (!perfSemaine[salarie]) perfSemaine[salarie] = { nb: 0, ca: 0 };
@@ -1043,12 +1043,12 @@
                 const fideliteParEmploye = {};
                 for (let i = 0; i < facturesRows.length; i++) {
                     const row = facturesRows[i];
-                    if (!row.c[0] || !row.nom) continue; // pas de numéro de facture
-                    const date = parseDateFrancaise(row.c[1]?.v);
+                    if (!row.numero) continue; // pas de numéro de facture
+                    const date = parseDateFrancaise(row.date_vente);
                     if (!date || date <= derniereCloture) continue;
-                    const salarie = String(row.c[3]?.v || "Non renseigné").trim();
+                    const salarie = String(row.employe_nom || "Non renseigné").trim();
                     if (!employesValides.has(salarie)) continue;
-                    const clientTel = (row.c[12]?.v || '').toString().trim();
+                    const clientTel = (row.client_fidelite_tel || '').toString().trim();
                     if (!fideliteParEmploye[salarie]) fideliteParEmploye[salarie] = { total: 0, avecCarte: 0 };
                     fideliteParEmploye[salarie].total += 1;
                     if (clientTel) fideliteParEmploye[salarie].avecCarte += 1;
@@ -1057,10 +1057,10 @@
                 let depensesSemaine = 0;
                 for (let i = 0; i < chargesRows.length; i++) {
                     const row = chargesRows[i];
-                    if (!row.c[0] || !row.nom) continue;
-                    const date = parseDateFrancaise(row.nom);
+                    if (!row.date_charge) continue;
+                    const date = parseDateFrancaise(row.date_charge);
                     if (!date || date <= derniereCloture) continue;
-                    depensesSemaine += parseFloat(row.c[3]?.v) || 0;
+                    depensesSemaine += parseFloat(row.montant) || 0;
                 }
 
                 const beneficeBrut = recetteSemaine - depensesSemaine;
@@ -1093,7 +1093,7 @@
             const COL_H = 7;
             const ligne2 = tresoRows[1];
 
-            const soldeDeclareBrut = (ligne2 && ligne2.c[COL_H] && ligne2.c[COL_H].v !== null && ligne2.c[COL_H].v !== '')
+            const soldeDeclare = tresoRows.length > 0 const soldeDeclareBrut = (ligne2 && ligne2.c[COL_H] && ligne2.c[COL_H].v !== null && ligne2.c[COL_H].v !== '')const soldeDeclareBrut = (ligne2 && ligne2.c[COL_H] && ligne2.c[COL_H].v !== null && ligne2.c[COL_H].v !== '') tresoRows[0].solde_bancaire !== null const soldeDeclareBrut = (ligne2 && ligne2.c[COL_H] && ligne2.c[COL_H].v !== null && ligne2.c[COL_H].v !== '')const soldeDeclareBrut = (ligne2 && ligne2.c[COL_H] && ligne2.c[COL_H].v !== null && ligne2.c[COL_H].v !== '') tresoRows[0].solde_bancaire !== ''
                 ? ligne2.c[COL_H].v : null;
             const soldeDeclare = soldeDeclareBrut !== null ? (parseFloat(soldeDeclareBrut) || 0) : null;
 
@@ -1112,9 +1112,9 @@
             let valeurStock = 0;
             for (let i = 0; i < produitsRows.length; i++) {
                 const row = produitsRows[i];
-                if (!row.c[0] || !row.nom) continue;
-                const coutGrossiste = parseFloat(row.c[4]?.v) || 0;
-                const stock = parseFloat(row.c[5]?.v) || 0;
+                if (!row.nom) continue;
+                const coutGrossiste = parseFloat(row.cout_unitaire) || 0;
+                const stock = parseFloat(row.stock_total) || 0;
                 valeurStock += coutGrossiste * stock;
             }
             document.getElementById('stat-valeur-stock').innerText = money(valeurStock);
@@ -1235,21 +1235,21 @@
             jours.forEach(j => { recettesParJour[cleJour(j)] = 0; depensesParJour[cleJour(j)] = 0; });
 
             ventesRows.forEach(row => {
-                if (!row.c[0] || !row.nom) return;
-                const date = parseDateFrancaise(row.nom);
+                if (!row.date_vente) return;
+                const date = parseDateFrancaise(row.date_vente);
                 if (!date || date <= derniereCloture) return;
                 const cle = cleJour(date);
                 if (recettesParJour[cle] === undefined) return;
-                recettesParJour[cle] += parseFloat(row.c[9]?.v) || 0;
+                recettesParJour[cle] += parseFloat(row.total) || 0;
             });
 
             chargesRows.forEach(row => {
-                if (!row.c[0] || !row.nom) return;
-                const date = parseDateFrancaise(row.nom);
+                if (!row.date_charge) return;
+                const date = parseDateFrancaise(row.date_charge);
                 if (!date || date <= derniereCloture) return;
                 const cle = cleJour(date);
                 if (depensesParJour[cle] === undefined) return;
-                depensesParJour[cle] += parseFloat(row.c[3]?.v) || 0;
+                depensesParJour[cle] += parseFloat(row.montant) || 0;
             });
 
             const labels = jours.map(j => j.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }));
@@ -1318,11 +1318,11 @@
 
             for (let i = 0; i < histRows.length; i++) {
                 const row = histRows[i];
-                if (!row.c[0] || !row.nom) continue;
-                const d = parseDateFrancaise(row.nom);
-                labels.push(d ? d.toLocaleDateString('fr-FR') : row.nom);
-                recettes.push(parseFloat(row.c[3]?.v) || 0);
-                benefices.push(parseFloat(row.c[8]?.v) || 0);
+                if (!row.date_debut) continue;
+                const d = parseDateFrancaise(row.date_debut);
+                labels.push(d ? d.toLocaleDateString('fr-FR') : row.date_debut);
+                recettes.push(parseFloat(row.recette_semaine) || 0);
+                benefices.push(parseFloat(row.benefice_net) || 0);
             }
 
             labels.push("En cours");
@@ -1684,18 +1684,18 @@
                 let depensesSemaine = 0;
 
                 ventesRows.forEach(row => {
-                    if (!row.c[1] || !row.valeur) return;
-                    const date = parseDateFrancaise(row.valeur);
+                    if (!row.date_vente) return;
+                    const date = parseDateFrancaise(row.date_vente);
                     if (!date || date <= derniereCloture) return;
-                    const total = parseFloat(row.c[5]?.v) || 0;
+                    const total = parseFloat(row.total) || 0;
                     recetteSemaine += total;
                 });
 
                 chargesRows.forEach(row => {
-                    if (!row.c[0] || !row.nom) return;
-                    const date = parseDateFrancaise(row.nom);
+                    if (!row.date_charge) return;
+                    const date = parseDateFrancaise(row.date_charge);
                     if (!date || date <= derniereCloture) return;
-                    depensesSemaine += parseFloat(row.c[3]?.v) || 0;
+                    depensesSemaine += parseFloat(row.montant) || 0;
                 });
 
                 const beneficeBrut = recetteSemaine - depensesSemaine;
@@ -1756,14 +1756,14 @@
             const sorted = histRows.slice().reverse();
 
             sorted.forEach(row => {
-                if (!row.c[0] || !row.nom) return;
+                if (!row.date_debut) return;
                 
-                const date = parseDateFrancaise(row.nom);
-                const recette = parseFloat(row.c[3]?.v) || 0;
-                const depenses = parseFloat(row.c[4]?.v) || 0;
-                const brut = parseFloat(row.c[5]?.v) || 0;
-                const impot = parseFloat(row.c[7]?.v) || 0;
-                const net = parseFloat(row.c[8]?.v) || 0;
+                const date = parseDateFrancaise(row.date_debut);
+                const recette = parseFloat(row.recette_semaine) || 0;
+                const depenses = parseFloat(row.depenses_semaine) || 0;
+                const brut = parseFloat(row.benefice_net) || 0;
+                const impot = 0; // À calculer si nécessaire
+                const net = brut - impot;
                 const tauxImpot = brut > 0 ? (impot / brut * 100) : 0;
 
                 html += `
@@ -1856,15 +1856,15 @@
                 const types = new Set();
 
                 chargesRows.forEach(row => {
-                    if (!row.c[0] || !row.nom) return;
+                    if (!row.date_charge) return;
                     
-                    const dateStr = row.nom;
+                    const dateStr = row.date_charge;
                     const date = parseDateFrancaise(dateStr);
-                    const type = row.c[1]?.v || 'Non spécifié';
-                    const description = row.c[2]?.v || '';
-                    const montant = parseFloat(row.c[3]?.v) || 0;
-                    const employe = row.c[4]?.v || 'Non renseigné';
-                    const commentaire = row.c[5]?.v || '';
+                    const type = row.categorie || 'Non spécifié';
+                    const description = row.description || '';
+                    const montant = parseFloat(row.montant) || 0;
+                    const employe = row.declarant || 'Non renseigné';
+                    const commentaire = ''; // Pas de commentaire dans la table charges
 
                     allCharges.push({
                         date: date,
