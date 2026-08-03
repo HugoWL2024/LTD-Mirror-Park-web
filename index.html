@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accueil - LTD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+  <script src="auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    // Vérifier l'authentification au chargement et afficher config si admin déja déverrouillé
+    window.addEventListener('DOMContentLoaded', function() {
+      if (hasRole('admin')) {
+        document.getElementById('config-link').style.display = 'block';
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="main-nav">
+    <a href="index.html" class="nav-brand">
+      <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+      <span class="nav-brand-text">Limited Gasoline</span>
+    </a>
+    <span class="nav-sep"></span>
+    <div class="nav-links">
+      <a href="index.html" class="nav-home active">Accueil</a>
+      <a href="Planning.html">Planning</a>
+      <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+      <a href="Ship%20From%20Store.html">Ship From Store</a>
+      <a href="Dashboard.html">Dashboard</a>
+      <a href="Fast%20Fashion.html">Fast Fashion</a>
+      <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+    </div>
+    <a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none;">⚙️ Config</a>
+    <button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚸 Déconnexion</button>
+  </nav>
+
+  <div class="page-shell">
+    <div class="container">
+      <div class="home-hero">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="home-hero-logo">
+        <div>
+          <h1>Limited Gasoline — Mirror Park</h1>
+          <p class="heading-sub">Portail interne de gestion : caisse, stock, dépenses, expéditions et paie.</p>
+        </div>
+      </div>
+
+      <div class="home-grid">
+        <a class="home-card" href="Caisse%20Enregistreuse.html">
+          <div class="home-card-icon">🧾</div>
+          <h2>Caisse Enregistreuse</h2>
+          <p>Comptabilité, factures et suivi de trésorerie.</p>
+        </a>
+        <a class="home-card" href="Dashboard.html">
+          <div class="home-card-icon">📊</div>
+          <h2>Dashboard</h2>
+          <p>Vue d'ensemble des ventes et indicateurs clés.</p>
+        </a>
+        <a class="home-card" href="Fast%20Fashion.html">
+          <div class="home-card-icon">🏷️</div>
+          <h2>Fast Fashion</h2>
+          <p>Gestion du stock et des dépenses boutique.</p>
+        </a>
+        <a class="home-card" href="Ship%20From%20Store.html">
+          <div class="home-card-icon">🚚</div>
+          <h2>Ship From Store</h2>
+          <p>Suivi des commandes expédiées depuis le magasin.</p>
+        </a>
+        <a class="home-card" href="Versement%20S%20+%20P.html">
+          <div class="home-card-icon">💵</div>
+          <h2>Versement S + P</h2>
+          <p>Registre hebdomadaire des salaires et primes.</p>
+        </a>
+        <a class="home-card" href="Planning.html">
+          <div class="home-card-icon">🗓️</div>
+          <h2>Planning</h2>
+          <p>Calendrier des événements, livraisons et rendez-vous.</p>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

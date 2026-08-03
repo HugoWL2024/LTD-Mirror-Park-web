@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning — LTD Mirror Park</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+<style>
+  :root {
+    --orange: #d9861f;
+    --blue: #4a8af4;
+    --gray: #767f92;
+  }
+  .planning-page *{box-sizing:border-box;}
+  .planning-page{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  .wrap{
+    max-width:1400px;
+    margin:0 auto;
+    padding:36px 28px 60px;
+  }
+  .wrap header h1{
+    font-size:34px;
+    margin:0 0 4px;
+    color:var(--amber);
+    font-weight:700;
+    font-family:'Space Grotesk', sans-serif;
+    letter-spacing:-0.3px;
+  }
+  .wrap header p{
+    margin:0 0 18px;
+    color:var(--ink-dim);
+    font-size:14.5px;
+  }
+  .rule{
+    height:3px;
+    width:64px;
+    background:linear-gradient(90deg, var(--amber), transparent);
+    border-radius:2px;
+    margin-bottom:28px;
+  }
+
+  .toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:20px;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .toolbar-left{display:flex;align-items:center;gap:12px;}
+  .navbtn{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    padding:10px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:500;
+    transition:all 0.15s ease;
+  }
+  .navbtn:hover{
+    color:var(--ink);
+    border-color:var(--navy-700);
+    background:var(--navy-900);
+  }
+  .month-title{
+    font-size:18px;
+    color:var(--navy-700);
+    font-weight:700;
+    text-align:center;
+    font-family:'Space Grotesk', sans-serif;
+  }
+  .month-title .badge{
+    color:var(--green);
+    font-weight:600;
+    margin-left:8px;
+    font-size:14px;
+  }
+  .sync-label{
+    font-size:12px;
+    color:var(--ink-faint);
+    white-space:nowrap;
+  }
+
+  .grid{
+    display:block;
+    border:2px solid var(--navy-900);
+    border-radius:12px;
+    overflow:hidden;
+    background:var(--surface);
+    box-shadow:var(--shadow-md);
+  }
+  .grid-head{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    background:var(--navy-800);
+    border-bottom:2px solid var(--navy-700);
+  }
+  .grid-head div{
+    padding:14px 8px;
+    text-align:center;
+    font-size:12px;
+    letter-spacing:0.8px;
+    color:var(--paper);
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .grid-body{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+  }
+  .cell{
+    min-height:140px;
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    padding:12px;
+    position:relative;
+    background:var(--paper);
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    transition:background 0.12s ease;
+  }
+  .cell:hover{background:var(--surface);}
+  .cell.other{background:#f9fafb;}
+  .cell.other:hover{background:#f4f5f7;}
+  .cell.other .daynum{color:var(--ink-faint);}
+  .cell.today{
+    background:linear-gradient(135deg, #fef9ed 0%, var(--paper) 100%);
+    box-shadow:inset 0 0 0 2px var(--amber);
+  }
+  .cell.today:hover{background:linear-gradient(135deg, #fef5e0 0%, var(--surface) 100%);}
+  .cell:nth-child(7n){border-right:none;}
+  .daynum{
+    font-size:15px;
+    color:var(--ink);
+    font-weight:700;
+    font-family:'IBM Plex Mono', monospace;
+    margin-bottom:2px;
+  }
+  .entries{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    flex:1;
+    overflow:hidden;
+  }
+  .pill{
+    font-size:11.5px;
+    padding:5px 8px;
+    border-radius:5px;
+    cursor:pointer;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    border-left:4px solid;
+    font-weight:600;
+    transition:transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .pill:hover{
+    transform:translateY(-1px);
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  }
+  .addbtn{
+    align-self:flex-end;
+    background:var(--surface);
+    border:1.5px solid var(--line);
+    color:var(--ink-faint);
+    width:28px;
+    height:28px;
+    border-radius:6px;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all 0.15s ease;
+  }
+  .addbtn:hover{
+    background:var(--navy-900);
+    color:var(--amber);
+    border-color:var(--amber);
+    transform:scale(1.08);
+  }
+
+  .legend{
+    display:flex;
+    gap:24px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:24px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+  .legend span{
+    font-size:13px;
+    color:var(--ink-dim);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:500;
+  }
+  .dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    display:inline-block;
+  }
+
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(18, 21, 43, 0.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1500;
+    padding:20px;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--surface);
+    border:2px solid var(--navy-800);
+    border-radius:12px;
+    padding:28px 30px;
+    width:100%;
+    max-width:520px;
+    max-height:88vh;
+    overflow-y:auto;
+    box-shadow:var(--shadow-lg);
+  }
+  .modal h2{
+    font-size:18px;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+  }
+  .modal h2 .dot{width:11px;height:11px;}
+  .modal .sub{
+    font-size:13.5px;
+    color:var(--ink-dim);
+    margin:0 0 20px;
+  }
+
+  .type-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:8px;
+  }
+  .type-card{
+    background:var(--paper);
+    border:2px solid var(--line);
+    border-radius:10px;
+    padding:16px 14px;
+    cursor:pointer;
+    text-align:left;
+    transition:all 0.15s ease;
+  }
+  .type-card:hover{
+    border-color:var(--amber);
+    background:var(--surface);
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  }
+  .type-card .tname{
+    font-size:14px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .type-card .tdesc{
+    font-size:12px;
+    color:var(--ink-dim);
+    line-height:1.5;
+  }
+
+  .wrap label, .modal label{
+    display:block;
+    font-size:11px;
+    letter-spacing:0.6px;
+    color:var(--ink-faint);
+    font-weight:700;
+    margin:14px 0 6px;
+    text-transform:uppercase;
+  }
+  .modal input, .modal textarea{
+    width:100%;
+    background:var(--paper);
+    border:1.5px solid var(--line);
+    color:var(--ink);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:14px;
+    font-family:inherit;
+    transition:border-color 0.15s ease;
+  }
+  .modal input:focus, .modal textarea:focus{
+    outline:none;
+    border-color:var(--navy-700);
+    background:var(--surface);
+  }
+  .modal textarea{resize:vertical;min-height:72px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:12px;
+    margin-top:24px;
+    align-items:center;
+  }
+  .link-btn{
+    background:none;
+    border:none;
+    color:var(--ink-dim);
+    font-size:14px;
+    cursor:pointer;
+    font-weight:600;
+    padding:10px 16px;
+    transition:color 0.15s ease;
+  }
+  .link-btn:hover{color:var(--ink);}
+  .save-btn{
+    background:var(--green);
+    color:#fff;
+    border:none;
+    padding:11px 22px;
+    border-radius:8px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .save-btn:hover{
+    background:#1aae7a;
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(31, 156, 110, 0.25);
+  }
+  .save-btn:disabled{opacity:0.5;cursor:default;transform:none;}
+  .del-btn{
+    background:none;
+    border:1.5px solid var(--red-600);
+    color:var(--red-600);
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    cursor:pointer;
+    font-weight:600;
+    transition:all 0.15s ease;
+  }
+  .del-btn:hover{
+    background:var(--red-600);
+    color:#fff;
+  }
+  .back-btn{
+    background:none;
+    border:none;
+    color:var(--ink-dim);
+    font-size:13px;
+    cursor:pointer;
+    margin-bottom:12px;
+    padding:6px 0;
+    font-weight:500;
+  }
+  .back-btn:hover{color:var(--amber);}
+  .detail-row{
+    font-size:13.5px;
+    margin-bottom:10px;
+    color:var(--ink-dim);
+    line-height:1.6;
+  }
+  .detail-row b{
+    color:var(--ink);
+    font-weight:600;
+  }
+  .toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--surface);
+    border:2px solid var(--green);
+    color:var(--ink);
+    padding:12px 20px;
+    border-radius:8px;
+    font-size:13.5px;
+    font-weight:600;
+    opacity:0;
+    transition:opacity .3s ease;
+    pointer-events:none;
+    z-index:2000;
+    box-shadow:var(--shadow-lg);
+  }
+  .toast.show{opacity:1;}
+  .toast.error{border-color:var(--red-600);color:var(--red-600);}
+  .note{
+    font-size:12px;
+    color:var(--ink-faint);
+    margin-top:16px;
+    text-align:center;
+    line-height:1.5;
+  }
+
+  #planning-setup-banner{
+    display:none;
+    max-width:1400px;
+    margin:16px auto 0;
+    padding:14px 18px;
+    background:var(--amber-bg);
+    border:2px solid var(--amber);
+    border-radius:10px;
+    color:#6b5012;
+    font-size:13.5px;
+    line-height:1.6;
+  }
+  #planning-setup-banner code{
+    background:rgba(184, 134, 11, 0.15);
+    padding:2px 6px;
+    border-radius:4px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+  }
+
+  @media (max-width: 900px){
+    .wrap{padding:24px 18px 48px;}
+    .toolbar{flex-direction:column;align-items:stretch;}
+    .toolbar-left{justify-content:space-between;}
+    .grid{border-radius:8px;}
+    .cell{min-height:110px;padding:8px;}
+    .daynum{font-size:14px;}
+  }
+
+</style>
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/services/planning.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function() {
+    checkAuth('employe');
+    if (hasRole('admin')) {
+      const configLink = document.getElementById('config-link');
+      if (configLink) configLink.style.display = 'block';
+    }
+  });
+</script>
+</head>
+<body>
+
+<nav class="main-nav">
+    <a href="index.html" class="nav-brand">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+        <span class="nav-brand-text">Limited Gasoline</span>
+    </a>
+    <span class="nav-sep"></span>
+    <div class="nav-links">
+        <a href="index.html" class="nav-home">Accueil</a>
+        <a href="Planning.html" class="active">Planning</a>
+        <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+        <a href="Ship%20From%20Store.html">Ship From Store</a>
+        <a href="Dashboard.html">Dashboard</a>
+        <a href="Fast%20Fashion.html">Fast Fashion</a>
+        <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+    </div>
+    <a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none; color: var(--ink); text-decoration: none; font-weight: 600;">⚙️ Config</a>
+    <button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚪 Déconnexion</button>
+</nav>
+
+<div id="planning-setup-banner">
+  ⚠️ Le planning Supabase est indisponible. Vérifiez la table <code>planning</code> et ses politiques RLS.
+</div>
+
+<div class="planning-page">
+<div class="wrap">
+  <header>
+    <h1>Planning</h1>
+    <p>LTD Mirror Park — calendrier des événements et activités</p>
+  </header>
+  <div class="rule"></div>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="navbtn" id="prevBtn">← Précédent</button>
+      <span class="sync-label" id="syncLabel">Chargement...</span>
+    </div>
+    <div class="month-title" id="monthTitle"></div>
+    <button class="navbtn" id="nextBtn">Suivant →</button>
+  </div>
+
+  <div class="grid">
+    <div class="grid-head">
+      <div>LUN</div><div>MAR</div><div>MER</div><div>JEU</div><div>VEN</div><div>SAM</div><div>DIM</div>
+    </div>
+    <div class="grid-body" id="gridBody"></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <p class="note">Planning synchronisé avec Supabase — visible par tous les membres du LTD.</p>
+</div>
+</div>
+
+<!-- Modal 1 : choix du type -->
+<div class="overlay" id="overlayType">
+  <div class="modal">
+    <h2>Ajouter au planning</h2>
+    <p class="sub">Pour le <span id="typeDateLabel"></span> — choisissez le type d'entrée.</p>
+    <div class="type-grid" id="typeGrid"></div>
+    <div class="modal-actions">
+      <button class="link-btn" onclick="closeAll()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2 : formulaire -->
+<div class="overlay" id="overlayForm">
+  <div class="modal">
+    <button class="back-btn" onclick="backToTypes()">← Retour</button>
+    <h2><span class="dot" id="formDot"></span><span id="formTitle">Nouvelle entrée</span></h2>
+    <p class="sub">Le <span id="formDateLabel"></span></p>
+
+    <label>Nom</label>
+    <input id="f_nom" placeholder="">
+
+    <div class="row2">
+      <div>
+        <label>Date</label>
+        <input id="f_date" type="date">
+      </div>
+      <div>
+        <label>Heure (HH:MM)</label>
+        <input id="f_heure" type="time">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div>
+        <label>Durée (heures)</label>
+        <input id="f_duree" type="number" min="0" step="0.5" value="1">
+      </div>
+      <div>
+        <label>Lieu</label>
+        <input id="f_lieu" placeholder="Optionnel">
+      </div>
+    </div>
+
+    <label>Organisateur</label>
+    <input id="f_organisateur" placeholder="Optionnel">
+
+    <label>Commentaire</label>
+    <textarea id="f_commentaire" placeholder="Optionnel"></textarea>
+
+    <div class="modal-actions">
+      <button class="link-btn" onclick="closeAll()">Annuler</button>
+      <button class="save-btn" id="saveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 3 : détail d'une entrée -->
+<div class="overlay" id="overlayDetail">
+  <div class="modal">
+    <h2><span class="dot" id="detailDot"></span><span id="detailTitle"></span></h2>
+    <p class="sub" id="detailType"></p>
+    <div id="detailBody"></div>
+    <div class="modal-actions">
+      <button class="del-btn" id="delBtn">Supprimer</button>
+      <button class="link-btn" onclick="closeAll()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TYPES = {
+  evenement:   {label:"Événement",       color:"var(--orange)", hex:"#f0a63a", desc:"Cérémonie, soirée privée, prestation externe."},
+  livraison:   {label:"Livraison",       color:"var(--green)",  hex:"#34c98f", desc:"Livraison à un partenaire ou un client."},
+  interne:     {label:"Interne",         color:"var(--blue)",   hex:"#5b9bf5", desc:"Réunion d'équipe, événement interne."},
+  rendezvous:  {label:"Rendez-vous",     color:"var(--gray)",   hex:"#9aa3b5", desc:"Rendez-vous externe (fournisseur, banque...)."},
+  visite:      {label:"Visite médicale", color:"var(--red)",    hex:"#ef5a5f", desc:"Visite médicale obligatoire pour les employés."}
+};
+const MONTHS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+// Même classeur que les autres pages du site (Caisse / Dashboard / Fast Fashion / SFS)
+// À renseigner : URL de déploiement Apps Script qui gère les actions "planningEnregistrerEntree" / "planningSupprimerEntree"
+
+// Intervalle de synchronisation automatique (15 secondes)
+const AUTO_REFRESH_MS = 15000;
+let autoRefreshInterval = null;
+
+let today = new Date();
+let viewYear = today.getFullYear();
+let viewMonth = today.getMonth();
+let entries = [];
+let pendingDate = null;
+let pendingType = null;
+let editingId = null;
+
+function pad(n){return n.toString().padStart(2,'0');}
+function isoDate(y,m,d){return `${y}-${pad(m+1)}-${pad(d)}`;}
+function fmtDate(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function gvizUrl(sheet){
+  throw new Error('La source Google Sheets a été remplacée par Supabase.');
+}
+
+// Les cellules "Date" renvoyées par gviz arrivent sous la forme Date(Y,M,D) (mois 0-indexé)
+function gvizToIso(cell){
+  if(!cell || cell.v==null) return '';
+  const v = cell.v;
+  if(typeof v === 'string' && v.startsWith('Date(')){
+    const m = v.match(/Date\((\d+),(\d+),(\d+)/);
+    if(m) return isoDate(+m[1], +m[2], +m[3]);
+  }
+  return String(v).slice(0,10);
+}
+
+async function envoyerAction(payload){
+  throw new Error('Les actions Apps Script ont été remplacées par Supabase.');
+}
+
+function unModalEstOuvert(){
+  return document.getElementById('overlayType').classList.contains('show')
+    || document.getElementById('overlayForm').classList.contains('show')
+    || document.getElementById('overlayDetail').classList.contains('show');
+}
+
+async function fetchEntries(){
+  const rows = await PlanningService.getAll({ orderBy: 'date_evt' });
+  return rows.map(row => ({ ID: row.id, Type: row.type || '', Nom: row.nom || '', Date: String(row.date_evt || '').slice(0, 10), Heure: row.heure || '', Duree: row.duree || '', Lieu: row.lieu || '', Organisateur: row.organisateur || '', Commentaire: row.commentaire || '' }));
+}
+
+async function loadEntries(){
+  try{
+    entries = await fetchEntries();
+    document.getElementById('planning-setup-banner').style.display = 'none';
+  }catch(e){
+    entries = [];
+    document.getElementById('planning-setup-banner').style.display = 'block';
+  }
+}
+
+async function refreshAuto(){
+  if(unModalEstOuvert()) return; // on n'interrompt pas une saisie en cours
+  const label = document.getElementById('syncLabel');
+  label.textContent = "Synchronisation...";
+  try{
+    entries = await fetchEntries();
+    document.getElementById('planning-setup-banner').style.display = 'none';
+    renderCalendar();
+    label.textContent = "Synchronisé à " + new Date().toLocaleTimeString('fr-FR');
+  }catch(e){
+    document.getElementById('planning-setup-banner').style.display = 'block';
+    label.textContent = "⚠️ Échec de synchro";
+  }
+}
+
+function startAutoRefresh(){
+  if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+  autoRefreshInterval = setInterval(refreshAuto, AUTO_REFRESH_MS);
+}
+
+function buildLegend(){
+  const el = document.getElementById('legend');
+  el.innerHTML = Object.values(TYPES).map(t=>
+    `<span><span class="dot" style="background:${t.color}"></span>${t.label}</span>`
+  ).join('');
+}
+
+function renderCalendar(){
+  document.getElementById('monthTitle').innerHTML =
+    `${MONTHS[viewMonth]} ${viewYear}` +
+    (viewYear===today.getFullYear() && viewMonth===today.getMonth() ? ` <span class="badge">(en cours)</span>` : '');
+
+  const first = new Date(viewYear, viewMonth, 1);
+  const startOffset = (first.getDay()+6)%7; // Monday=0
+  const gridStart = new Date(viewYear, viewMonth, 1-startOffset);
+
+  const body = document.getElementById('gridBody');
+  body.innerHTML = '';
+  for(let i=0;i<42;i++){
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate()+i);
+    const iso = isoDate(d.getFullYear(), d.getMonth(), d.getDate());
+    const isOther = d.getMonth()!==viewMonth;
+    const isToday = iso === isoDate(today.getFullYear(), today.getMonth(), today.getDate());
+
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (isOther?' other':'') + (isToday?' today':'');
+
+    const dayEntries = entries.filter(e=>e.Date===iso).sort((a,b)=>(a.Heure||'').localeCompare(b.Heure||''));
+    const pillsHtml = dayEntries.map(e=>{
+      const t = TYPES[e.Type];
+      if(!t) return '';
+      return `<div class="pill" style="border-color:${t.hex};background:${t.hex}22;color:${t.hex}" data-id="${e.ID}">${e.Nom}</div>`;
+    }).join('');
+
+    cell.innerHTML = `
+      <div class="daynum">${d.getDate()}</div>
+      <div class="entries">${pillsHtml}</div>
+      <button class="addbtn" data-date="${iso}">+</button>
+    `;
+    body.appendChild(cell);
+  }
+
+  body.querySelectorAll('.addbtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>openTypeModal(btn.dataset.date));
+  });
+  body.querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click', ()=>openDetail(p.dataset.id));
+  });
+}
+
+function openTypeModal(dateIso){
+  pendingDate = dateIso;
+  document.getElementById('typeDateLabel').textContent = fmtDate(dateIso);
+  const grid = document.getElementById('typeGrid');
+  grid.innerHTML = Object.entries(TYPES).map(([key,t])=>`
+    <div class="type-card" data-type="${key}">
+      <div class="tname" style="color:${t.color}"><span class="dot" style="background:${t.color}"></span>${t.label}</div>
+      <div class="tdesc">${t.desc}</div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.type-card').forEach(c=>{
+    c.addEventListener('click', ()=>openFormModal(c.dataset.type));
+  });
+  document.getElementById('overlayType').classList.add('show');
+}
+
+function openFormModal(typeKey){
+  pendingType = typeKey;
+  editingId = null;
+  const t = TYPES[typeKey];
+  document.getElementById('overlayType').classList.remove('show');
+  document.getElementById('formDot').style.background = t.color;
+  document.getElementById('formTitle').textContent = `Nouvelle entrée — ${t.label}`;
+  document.getElementById('formDateLabel').textContent = fmtDate(pendingDate);
+
+  document.getElementById('f_nom').value = '';
+  document.getElementById('f_date').value = pendingDate;
+  document.getElementById('f_heure').value = '';
+  document.getElementById('f_duree').value = 1;
+  document.getElementById('f_lieu').value = '';
+  document.getElementById('f_organisateur').value = '';
+  document.getElementById('f_commentaire').value = '';
+
+  document.getElementById('overlayForm').classList.add('show');
+}
+
+function backToTypes(){
+  document.getElementById('overlayForm').classList.remove('show');
+  openTypeModal(pendingDate);
+}
+
+async function saveEntry(){
+  const nom = document.getElementById('f_nom').value.trim();
+  if(!nom){ showToast("Le nom est requis", true); return; }
+  const entry = {
+    ID: editingId || (Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+    Type: pendingType,
+    Nom: nom,
+    Date: document.getElementById('f_date').value || pendingDate,
+    Heure: document.getElementById('f_heure').value,
+    Duree: document.getElementById('f_duree').value,
+    Lieu: document.getElementById('f_lieu').value.trim(),
+    Organisateur: document.getElementById('f_organisateur').value.trim(),
+    Commentaire: document.getElementById('f_commentaire').value.trim()
+  };
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = "Enregistrement...";
+
+  try{
+    const payload = { type: entry.Type, nom: entry.Nom, date_evt: entry.Date, heure: entry.Heure || null, duree: Number(entry.Duree) || 0, lieu: entry.Lieu, organisateur: entry.Organisateur, commentaire: entry.Commentaire };
+    const saved = editingId ? await PlanningService.update(editingId, payload) : await PlanningService.create(payload);
+    entry.ID = saved.id;
+    if(false){
+      showToast("Erreur : " + (res && res.error ? res.error : "échec de l'enregistrement"), true);
+      return;
+    }
+    if(editingId){
+      entries = entries.map(e=>e.ID===editingId?entry:e);
+    } else {
+      entries.push(entry);
+    }
+    closeAll();
+    renderCalendar();
+    showToast("Entrée enregistrée");
+  }catch(err){
+    showToast("Erreur d'enregistrement", true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Enregistrer";
+  }
+}
+
+function openDetail(id){
+  const e = entries.find(x=>x.ID===id);
+  if(!e) return;
+  const t = TYPES[e.Type];
+  document.getElementById('detailDot').style.background = t.color;
+  document.getElementById('detailTitle').textContent = e.Nom;
+  document.getElementById('detailType').textContent = t.label + ' — ' + fmtDate(e.Date);
+  document.getElementById('detailBody').innerHTML = `
+    ${e.Heure?`<div class="detail-row"><b>Heure :</b> ${e.Heure}</div>`:''}
+    ${e.Duree?`<div class="detail-row"><b>Durée :</b> ${e.Duree} h</div>`:''}
+    ${e.Lieu?`<div class="detail-row"><b>Lieu :</b> ${e.Lieu}</div>`:''}
+    ${e.Organisateur?`<div class="detail-row"><b>Organisateur :</b> ${e.Organisateur}</div>`:''}
+    ${e.Commentaire?`<div class="detail-row"><b>Commentaire :</b> ${e.Commentaire}</div>`:''}
+  `;
+  document.getElementById('delBtn').onclick = async ()=>{
+    try{
+      await PlanningService.delete(id);
+      if(false){
+        showToast("Erreur : " + (res && res.error ? res.error : "suppression impossible"), true);
+        return;
+      }
+      entries = entries.filter(x=>x.ID!==id);
+      closeAll();
+      renderCalendar();
+      showToast("Entrée supprimée");
+    }catch(err){
+      showToast("Erreur lors de la suppression", true);
+    }
+  };
+  document.getElementById('overlayDetail').classList.add('show');
+}
+
+function closeAll(){
+  document.getElementById('overlayType').classList.remove('show');
+  document.getElementById('overlayForm').classList.remove('show');
+  document.getElementById('overlayDetail').classList.remove('show');
+  pendingDate = null; pendingType = null; editingId = null;
+}
+
+document.getElementById('prevBtn').addEventListener('click', ()=>{
+  viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;}
+  renderCalendar();
+});
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  viewMonth++; if(viewMonth>11){viewMonth=0;viewYear++;}
+  renderCalendar();
+});
+document.getElementById('saveBtn').addEventListener('click', saveEntry);
+[document.getElementById('overlayType'),document.getElementById('overlayForm'),document.getElementById('overlayDetail')].forEach(ov=>{
+  ov.addEventListener('click', (e)=>{ if(e.target===ov) closeAll(); });
+});
+
+(async function init(){
+  buildLegend();
+  await loadEntries();
+  renderCalendar();
+  document.getElementById('syncLabel').textContent = "Synchro auto activée";
+  startAutoRefresh();
+})();
+</script>
+</body>
+</html>

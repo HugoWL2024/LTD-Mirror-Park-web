@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Registre des Salaires & Primes - Hebdomadaire</title>
+    <!-- Bibliothèque PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+    <script src="auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/services/employees.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      checkAuth('employe');
+      if (hasRole('admin')) {
+        const configLink = document.getElementById('config-link');
+        if (configLink) configLink.style.display = 'block';
+      }
+    });
+  </script></head>
+<body>
+
+<nav class="main-nav">
+    <a href="index.html" class="nav-brand">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+        <span class="nav-brand-text">Limited Gasoline</span>
+    </a>
+    <span class="nav-sep"></span>
+    <div class="nav-links">
+        <a href="index.html" class="nav-home">Accueil</a>
+        <a href="Planning.html">Planning</a>
+        <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+        <a href="Ship%20From%20Store.html">Ship From Store</a>
+        <a href="Dashboard.html">Dashboard</a>
+        <a href="Fast%20Fashion.html">Fast Fashion</a>
+        <a href="Versement%20S%20+%20P.html" class="active">Versement S + P</a>
+    </div>
+    <a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none; color: var(--ink); text-decoration: none; font-weight: 600;">⚙️ Config</a>
+    <button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚸 Déconnexion</button>
+<div class="page-shell">
+<div class="main-container">
+
+    <!-- FORMULAIRE PRINCIPAL -->
+    <div class="card">
+        <h2>Registre Hebdomadaire des Rémunérations</h2>
+        <form id="metaForm">
+            <!-- CATEGORIE 1 : CONTEXTE GÉNÉRAL -->
+            <div class="form-section">
+                <div class="section-title">Contexte & Période</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Semaine / Période concernée</label>
+                        <input type="text" id="inSemaine" placeholder="Ex : Semaine du 06/07 au 12/07/2026" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nom de la structure / Entreprise</label>
+                        <input type="text" id="inEntreprise" value="Limited Gasoline Mirror Park" readonly required>
+                    </div>
+                    <div class="form-group">
+                        <label>Donneur d'ordre (Nom / Prénom)</label>
+                        <input type="text" id="inResponsable" placeholder="Ex : Morgan BECK" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Poste / Fonction du Responsable</label>
+                        <input type="text" id="inPosteResponsable" placeholder="Ex : Directeur des Ressources Humaines" required>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- CATEGORIE 2 : AJOUT DES SALARIÉS -->
+        <div class="form-section">
+            <div class="section-title">Saisie d'un salarié</div>
+            <form id="salarieForm" onsubmit="ajouterSalarie(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Prénom & Nom du Salarié</label>
+                        <input type="text" id="inSalarieNom" placeholder="Ex : John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fonction / Poste</label>
+                        <input type="text" id="inSalarieFonction" placeholder="Ex : Vendeur" required>
+                    </div>
+                </div>
+                
+                <div class="form-grid-4" style="margin-top: 12px;">
+                    <div class="form-group">
+                        <label>Heures travaillées (Ex: 17h42 ou 17:42 ou 15)</label>
+                        <input type="text" id="inHeures" placeholder="Ex : 17h42" oninput="calculsAutomatiques()" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre d'avis reçus</label>
+                        <input type="number" id="inAvis" min="0" placeholder="Ex : 4" oninput="calculsAutomatiques()" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Salaire de base Comptabilité ($)</label>
+                        <input type="number" id="inSalaire" min="0" placeholder="Ex : 5000" oninput="calculsAutomatiques()" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Prime Bonus Direction ($)</label>
+                        <input type="number" id="inBonus" min="0" value="0" oninput="calculsAutomatiques()">
+                    </div>
+                </div>
+
+                <!-- AFFICHAGE DES CALCULS EN DIRECT AUTOMATIQUES -->
+                <div class="form-grid" style="margin-top: 15px; background: #f8fafc; padding: 12px; border-radius: 4px; border: 1px dashed #cbd5e1;">
+                    <div class="form-group">
+                        <label>Prime Heures (1000$ par bloc fixe de 8h) [Lecture seule]</label>
+                        <input type="text" id="outPrimeHeures" value="0 $" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Prime Avis Automatique (100$ / Avis) [Lecture seule]</label>
+                        <input type="text" id="outPrimeAvis" value="0 $" readonly>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-add">+ Ajouter ce salarié à la liste</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LISTE EN COURS DE SAISIE (VISUELLE) -->
+    <div class="card" id="listCard" style="display:none;">
+        <h3>Salariés enregistrés pour cette période</h3>
+        <div class="table-responsive">
+            <table class="web-table">
+                <thead>
+                    <tr>
+                        <th>Salarié</th>
+                        <th>Fonction</th>
+                        <th>Temps effectué</th>
+                        <th>Avis</th>
+                        <th>Salaire Base</th>
+                        <th>Pr. Heures</th>
+                        <th>Pr. Avis</th>
+                        <th>Bonus</th>
+                        <th>Total Brut</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="webTableBody"></tbody>
+            </table>
+        </div>
+        <button type="button" class="btn-submit" style="margin-top:20px;" onclick="genererRegistreFinal()">Valider et compiler le Registre PDF</button>
+    </div>
+
+    <!-- BOUTON TELECHARGEMENT PDF -->
+    <div style="text-align: center;">
+        <button class="btn-print" id="btnPrint" onclick="telechargerPDF()">Télécharger le Registre Salaires en PDF</button>
+    </div>
+
+    <!-- ZONE DE RENDU DU DOCUMENT FINAL (A4 PRO) -->
+    <div class="print-preview-area" id="previewArea">
+        <div class="pdf-header">
+            <div class="pdf-header-left">
+                <div class="pdf-title" id="pdfEntreprise">STRUCTURE</div>
+                <div class="pdf-subtitle">Registre Hebdomadaire des Rémunérations</div>
+            </div>
+            <div class="pdf-header-right">
+                <strong>Période :</strong> <span id="pdfSemaine"></span><br>
+                <strong>Généré le :</strong> <span id="pdfDateGeneration"></span>
+            </div>
+        </div>
+
+        <div class="pdf-meta-table">
+            <div class="pdf-meta-row">
+                <div class="pdf-meta-col">
+                    <strong>Donneur d'ordre :</strong> <span id="pdfResponsable"></span>
+                </div>
+                <div class="pdf-meta-col">
+                    <strong>Qualité / Fonction :</strong> <span id="pdfPosteResponsable"></span>
+                </div>
+            </div>
+        </div>
+
+        <table class="pdf-main-table">
+            <thead>
+                <tr>
+                    <th>Nom & Prénom</th>
+                    <th>Fonction / Poste</th>
+                    <th style="text-align:center;">Temps</th>
+                    <th style="text-align:center;">Av.</th>
+                    <th class="amount">Salaire de Base</th>
+                    <th class="amount">Pr. Heures</th>
+                    <th class="amount">Pr. Avis</th>
+                    <th class="amount">Bonus Dir.</th>
+                    <th class="amount">Total Brut Dû</th>
+                </tr>
+            </thead>
+            <tbody id="pdfTableBody"></tbody>
+        </table>
+
+        <div class="total-general-box">
+            <div style="display:table-cell; width:70%;">MONTANT TOTAL DE LA MASSE SALARIALE À VERSER :</div>
+            <div style="display:table-cell; width:30%; text-align:right;" id="pdfTotalGeneral">0.00 $</div>
+        </div>
+
+        <div class="pdf-footer-signatures">
+            <div class="signature-col">
+                <strong>Visa & Signature du Comptable / RH :</strong>
+                <div style="margin-top:10px; font-size:8pt; color:#64748b;">Signé numériquement par l'autorité émettrice</div>
+            </div>
+            <div class="signature-col" style="border-left:none;">
+                <strong>Signature du Donneur d'Ordre :</strong>
+                <div style="margin-top:25px; font-family:Georgia, serif; font-style:italic; font-size:14pt; color:#0284c7;" id="pdfSignatureNom"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script>
+    let listeSalaries = [];
+
+    // Analyse intelligente de la chaîne de texte pour en tirer une valeur décimale
+    function interpreterFormatHeures(chaineSaisie) {
+        if (!chaineSaisie) return { decimal: 0, textePropre: "0h00" };
+
+        // Normalise la saisie en minuscules et vire les espaces en trop
+        let str = chaineSaisie.toLowerCase().trim();
+
+        let heures = 0;
+        let minutes = 0;
+
+        // Cas 1 : Format "17h42" ou "17h" ou "17 h 42"
+        if (str.includes('h')) {
+            let parties = str.split('h');
+            heures = parseInt(parties[0]) || 0;
+            minutes = parseInt(parties[1]) || 0;
+        } 
+        // Cas 2 : Format "17:42"
+        else if (str.includes(':')) {
+            let parties = str.split(':');
+            heures = parseInt(parties[0]) || 0;
+            minutes = parseInt(parties[1]) || 0;
+        } 
+        // Cas 3 : L'utilisateur a écrit un nombre classique (ex: 17 ou 17.5 ou 17,5)
+        else {
+            str = str.replace(',', '.');
+            let nb = parseFloat(str) || 0;
+            heures = Math.floor(nb);
+            minutes = Math.round((nb - heures) * 60);
+        }
+
+        // Sécurité si les minutes dépassent 59 ou descendent sous 0
+        if (minutes < 0) minutes = 0;
+        if (minutes > 59) minutes = 59;
+        if (heures < 0) heures = 0;
+
+        // Calcul décimal pur pour les formules
+        const valeurDecimale = heures + (minutes / 60);
+
+        // Format d'affichage propre textuel pour les tableaux (ex: 17h42)
+        const minutesAffichees = minutes < 10 ? '0' + minutes : minutes;
+        const textePropre = heures + "h" + minutesAffichees;
+
+        return {
+            decimal: valeurDecimale,
+            textePropre: textePropre
+        };
+    }
+
+    // Calculs en temps réel à la saisie
+    function calculsAutomatiques() {
+        const saisie = document.getElementById('inHeures').value;
+        const donneesTemps = interpreterFormatHeures(saisie);
+        const avis = parseInt(document.getElementById('inAvis').value) || 0;
+
+        // Reste strict : Math.floor sur les blocs de 8h (17h42 = 17.7h -> 17.7/8 = 2.21 -> 2 blocs = 2000$)
+        const primeHeures = Math.floor(donneesTemps.decimal / 8) * 1000;
+        const primeAvis = avis * 100;
+
+        document.getElementById('outPrimeHeures').value = primeHeures.toLocaleString('en-US') + " $";
+        document.getElementById('outPrimeAvis').value = primeAvis.toLocaleString('en-US') + " $";
+    }
+
+    // Ajouter un salarié dans la liste temporaire
+    function ajouterSalarie(event) {
+        event.preventDefault();
+
+        const nom = document.getElementById('inSalarieNom').value;
+        const fonction = document.getElementById('inSalarieFonction').value;
+        const saisieHeures = document.getElementById('inHeures').value;
+        const donneesTemps = interpreterFormatHeures(saisieHeures);
+        
+        const avis = parseInt(document.getElementById('inAvis').value) || 0;
+        const salaire = parseFloat(document.getElementById('inSalaire').value) || 0;
+        const bonus = parseFloat(document.getElementById('inBonus').value) || 0;
+
+        const primeHeures = Math.floor(donneesTemps.decimal / 8) * 1000;
+        const primeAvis = avis * 100;
+        const totalBrut = salaire + primeHeures + primeAvis + bonus;
+
+        const salarie = { 
+            nom, 
+            fonction, 
+            heuresTexte: donneesTemps.textePropre, // Sauvegarde le format "17h42"
+            heuresDecimal: donneesTemps.decimal,
+            avis, 
+            salaire, 
+            primeHeures, 
+            primeAvis, 
+            bonus, 
+            totalBrut 
+        };
+        
+        listeSalaries.push(salarie);
+
+        mettreAJourTableauVisuel();
+        document.getElementById('salarieForm').reset();
+        calculsAutomatiques();
+    }
+
+    // Supprimer un élément de la liste
+    function supprimerSalarie(index) {
+        listeSalaries.splice(index, 1);
+        mettreAJourTableauVisuel();
+    }
+
+    // Met à jour la liste sur l'interface Web
+    function mettreAJourTableauVisuel() {
+        const tbody = document.getElementById('webTableBody');
+        tbody.innerHTML = "";
+
+        if(listeSalaries.length === 0) {
+            document.getElementById('listCard').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('listCard').style.display = 'block';
+
+        listeSalaries.forEach((s, idx) => {
+            const row = `<tr>
+                <td><strong>${s.nom}</strong></td>
+                <td>${s.fonction}</td>
+                <td style="text-align:center; font-weight:500;">${s.heuresTexte}</td>
+                <td style="text-align:center;">${s.avis}</td>
+                <td>${s.salaire.toLocaleString('en-US')} $</td>
+                <td>${s.primeHeures.toLocaleString('en-US')} $</td>
+                <td>${s.primeAvis.toLocaleString('en-US')} $</td>
+                <td>${s.bonus.toLocaleString('en-US')} $</td>
+                <td style="font-weight:bold; color:#16a34a;">${s.totalBrut.toLocaleString('en-US')} $</td>
+                <td><button class="btn-delete" onclick="supprimerSalarie(${idx})">❌</button></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // Compiler le PDF final A4
+    function genererRegistreFinal() {
+        if(!document.getElementById('metaForm').checkValidity()) {
+            alert("Veuillez remplir correctement les informations de contexte (Semaine, Entreprise, Responsable).");
+            return;
+        }
+
+        // Remplissage métadonnées
+        document.getElementById('pdfEntreprise').innerText = document.getElementById('inEntreprise').value.toUpperCase();
+        document.getElementById('pdfSemaine').innerText = document.getElementById('inSemaine').value;
+        document.getElementById('pdfResponsable').innerText = document.getElementById('inResponsable').value;
+        document.getElementById('pdfPosteResponsable').innerText = document.getElementById('inPosteResponsable').value;
+        document.getElementById('pdfSignatureNom').innerText = document.getElementById('inResponsable').value;
+        
+        const mtn = new Date();
+        document.getElementById('pdfDateGeneration').innerText = mtn.toLocaleDateString('fr-FR') + " à " + mtn.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+
+        // Remplissage tableau des salariés
+        const pdfTbody = document.getElementById('pdfTableBody');
+        pdfTbody.innerHTML = "";
+        let masseSalarialeTotale = 0;
+
+        listeSalaries.forEach(s => {
+            masseSalarialeTotale += s.totalBrut;
+            const row = `<tr>
+                <td><strong>${s.nom}</strong></td>
+                <td>${s.fonction}</td>
+                <td style="text-align:center; font-weight:600;">${s.heuresTexte}</td>
+                <td style="text-align:center;">${s.avis}</td>
+                <td class="amount">${s.salaire.toLocaleString('en-US')} $</td>
+                <td class="amount">${s.primeHeures.toLocaleString('en-US')} $</td>
+                <td class="amount">${s.primeAvis.toLocaleString('en-US')} $</td>
+                <td class="amount">${s.bonus.toLocaleString('en-US')} $</td>
+                <td class="amount" style="color:#0284c7;">${s.totalBrut.toLocaleString('en-US')} $</td>
+            </tr>`;
+            pdfTbody.innerHTML += row;
+        });
+
+        document.getElementById('pdfTotalGeneral').innerText = masseSalarialeTotale.toLocaleString('en-US', {minimumFractionDigits: 2}) + " $";
+
+        // Affichage final
+        document.getElementById('previewArea').style.display = 'block';
+        document.getElementById('btnPrint').style.display = 'block';
+        document.getElementById('previewArea').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Exporter
+    function telechargerPDF() {
+        const element = document.getElementById('previewArea');
+        const entrepriseNom = document.getElementById('inEntreprise').value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const semaineNom = document.getElementById('inSemaine').value.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+
+        // AJOUT : on force la fenêtre en haut de page avant la capture, sinon
+        // html2canvas capture depuis la position de scroll actuelle (par ex.
+        // après le scrollIntoView du preview), ce qui coupait le début du PDF.
+        window.scrollTo(0, 0);
+
+        const options = {
+            margin:       [10, 0, 10, 0],
+            filename:     'registre_salaires_' + entrepriseNom + '_' + semaineNom + '.pdf',
+            image:        { type: 'jpeg', quality: 1.0 },
+            // AJOUT : scrollX/scrollY à 0 pour ignorer le défilement de la page
+            // au moment de la capture, et forcer le rendu à partir du tout
+            // début du document plutôt que de la position visible à l'écran.
+            html2canvas:  { scale: 2, useCORS: true, logging: false, width: 794, scrollX: 0, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            // AJOUT : évite qu'un tableau ou un bloc soit coupé au milieu
+            // entre deux pages du PDF.
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        html2pdf().set(options).from(element).save();
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAISSE LTD - Stock & Dépenses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/services/products.js"></script>
+<script src="js/services/employees.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', function() {
+  checkAuth('employe');
+  if (hasRole('admin')) {
+    const configLink = document.getElementById('config-link');
+    if (configLink) configLink.style.display = 'block';
+  }
+});
+</script>
+<style>
+:root {
+    --navy-950: #12152B;
+    --navy-900: #1B2050;
+    --navy-800: #262C68;
+    --navy-700: #363D82;
+
+    --red-700: #970100;
+    --red-600: #C00100;
+    --red-500: #E23B2E;
+
+    --green: #1F8A4C;
+    --green-bg: #EAF6EE;
+    --amber: #B8860B;
+    --amber-bg: #FBF2DD;
+
+    --c-orange: var(--amber);
+
+    --paper: #F5F3EC;
+    --surface: #FFFFFF;
+    --surface-alt: #FBFAF6;
+    --ink: #1C1E2B;
+    --ink-soft: #62667A;
+    --ink-faint: #9A9DAC;
+    --line: #E7E2D4;
+
+    --shadow-sm: 0 1px 2px rgba(18, 21, 43, 0.06);
+    --shadow-md: 0 6px 18px rgba(18, 21, 43, 0.09);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
+
+/* ---------- En-tête général ---------- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 30px 0;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.page-header .heading { display: flex; align-items: center; gap: 12px; }
+.heading-mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--navy-900);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 18px;
+}
+h1 { color: var(--navy-900); font-size: 1.4em; font-weight: 700; margin: 0; }
+.heading-sub { font-size: 0.78em; color: var(--ink-soft); margin: 2px 0 0; }
+
+/* ---------- Navigation par onglets (pilule) ---------- */
+.tab-nav-wrap { padding: 18px 30px 0; }
+.tab-nav {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 6px;
+    box-shadow: var(--shadow-sm);
+}
+.tab-btn {
+    border: none;
+    background: transparent;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.88em;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background .15s ease, color .15s ease;
+}
+.tab-btn:hover:not(.active) { background: var(--surface-alt); color: var(--ink); }
+.tab-btn.active { background: var(--navy-900); color: white; box-shadow: var(--shadow-sm); }
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ---------- Barre de synchro + outils ---------- */
+.sync-bar {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 11px 16px; margin-bottom: 22px;
+    font-size: 0.82em; color: var(--ink-soft);
+    box-shadow: var(--shadow-sm); flex-wrap: wrap;
+}
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.toolbar-fields { display: flex; gap: 10px; flex-wrap: wrap; margin-left: 4px; }
+.field-input {
+    padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px;
+    font-size: 13.5px; color: var(--ink); background: var(--surface-alt);
+    font-family: 'Inter', sans-serif; min-width: 190px;
+}
+.field-input:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+
+.btn-refresh {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--navy-900); color: white; border: none;
+    padding: 11px 17px; cursor: pointer; border-radius: 11px;
+    font-weight: 600; font-family: inherit; font-size: 13.5px;
+    box-shadow: var(--shadow-sm); transition: background .15s ease, transform .1s ease;
+}
+.btn-refresh:hover { background: var(--navy-800); }
+.btn-refresh:active { transform: scale(0.97); }
+.btn-refresh.small { padding: 8px 14px; font-size: 12.5px; margin-left: auto; }
+.btn-refresh.red { background: var(--red-600); }
+.btn-refresh.red:hover { background: var(--red-700); }
+.btn-refresh.outline { background: var(--surface-alt); color: var(--navy-900); border: 1px solid var(--line); box-shadow: none; }
+.btn-refresh.outline:hover { background: var(--paper); }
+.btn-refresh.green { background: var(--green); }
+.btn-refresh.green:hover { background: #17693c; }
+.btn-refresh.gris { background: var(--ink-faint); }
+.btn-refresh.gris:hover { background: var(--ink-soft); }
+.btn-refresh.full { width: 100%; justify-content: center; }
+
+/* ---------- Cartes statistiques ---------- */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.stat-box {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 18px 16px; box-shadow: var(--shadow-sm);
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.stat-box:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.stat-box .label { font-size: 0.72em; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.stat-box .value { font-family: 'IBM Plex Mono', monospace; font-size: 1.65em; font-weight: 600; color: var(--navy-900); margin-top: 8px; }
+.stat-box.rupture { border-top: 3px solid var(--red-600); } .stat-box.rupture .value { color: var(--red-600); }
+.stat-box.bas { border-top: 3px solid var(--amber); } .stat-box.bas .value { color: var(--amber); }
+
+/* ---------- Panneaux ---------- */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-bottom: 22px; box-shadow: var(--shadow-sm); }
+.panel h2 { color: var(--navy-900); font-size: 1.05em; font-weight: 700; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 2px solid var(--navy-900); display: flex; align-items: center; gap: 8px; }
+
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align: left; padding: 10px; font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); border-bottom: 2px solid var(--line); }
+tbody td { padding: 11px 10px; border-bottom: 1px solid var(--surface-alt); font-size: 0.9em; color: var(--ink); }
+tbody tr:hover { background: var(--surface-alt); }
+tbody tr.rupture td, tbody tr.bas td { background: var(--amber-bg); }
+tbody tr.rupture:hover td, tbody tr.bas:hover td { background: #f7e7c4; }
+.num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'IBM Plex Mono', monospace; }
+.commander { font-weight: 700; color: var(--red-600); }
+.badge-mini { font-size: 0.75em; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; }
+tr.rupture .badge-mini { background: var(--surface); color: var(--red-600); border: 1px solid var(--red-500); }
+tr.bas .badge-mini { background: var(--surface); color: var(--amber); border: 1px solid var(--amber); }
+
+/* ---------- Barres de capacité de stockage ---------- */
+.capacites-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.capacite-box { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--surface-alt); }
+.capacite-box.ok { border-left: 4px solid var(--green); }
+.capacite-box.bas { border-left: 4px solid var(--amber); }
+.capacite-box.rupture { border-left: 4px solid var(--red-600); }
+.capacite-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.capacite-label { font-weight: 700; color: var(--navy-900); font-size: 0.9em; }
+.capacite-poids { font-family: 'IBM Plex Mono', monospace; font-size: 0.82em; color: var(--ink-soft); }
+.capacite-bar-track { width: 100%; height: 12px; background: var(--line); border-radius: 8px; overflow: hidden; }
+.capacite-bar-fill { height: 100%; border-radius: 8px; transition: width .3s ease; background: var(--green); }
+.capacite-bar-fill.bas { background: var(--amber); }
+.capacite-bar-fill.rupture { background: var(--red-600); }
+.capacite-pct { margin-top: 6px; font-size: 0.75em; color: var(--ink-soft); text-align: right; }
+.capacite-box.rupture .capacite-pct { color: var(--red-600); font-weight: 700; }
+
+/* ---------- Grille produits (Stock) ---------- */
+.grid-produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.produit-card {
+    background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--line);
+    border-radius: 14px; padding: 16px; position: relative; box-shadow: var(--shadow-sm);
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.produit-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.produit-card.ok { border-top-color: var(--green); }
+.produit-card.bas { border-top-color: var(--amber); background: var(--amber-bg); }
+.produit-card.rupture { border-top-color: var(--red-600); background: #fdeceb; }
+.produit-card img { width: 100%; height: 90px; object-fit: contain; margin-bottom: 8px; }
+.produit-card .nom { font-weight: 700; color: var(--navy-900); margin-bottom: 2px; font-size: 0.98em; padding-right: 60px; }
+.produit-card .cat { font-size: 0.72em; color: var(--ink-soft); margin-bottom: 8px; }
+.produit-card .prix { color: var(--red-600); font-weight: 700; font-family: 'IBM Plex Mono', monospace; font-size: 0.95em; }
+.produit-card .prix .promo { color: var(--ink-faint); font-weight: 400; font-family: 'Inter', sans-serif; }
+.stock-line { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 4px; font-size: 0.88em; color: var(--ink-soft); }
+.badge-stock { padding: 3px 11px; border-radius: 20px; font-weight: 700; font-size: 0.95em; font-family: 'IBM Plex Mono', monospace; background: var(--green-bg); color: var(--green); }
+.badge-stock.faible { background: var(--amber-bg); color: var(--amber); }
+.badge-stock.rupture { background: #fdeceb; color: var(--red-600); }
+.stock-detail {
+    display: flex; justify-content: space-between; gap: 6px; margin: 6px 0 8px;
+    padding: 8px 9px; background: var(--surface-alt); border: 1px solid var(--line); border-radius: 9px;
+}
+.stock-detail .emp { text-align: center; flex: 1; }
+.stock-detail .emp .lbl { display: block; font-size: 0.62em; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.03em; }
+.stock-detail .emp .val { display: block; font-family: 'IBM Plex Mono', monospace; font-weight: 700; color: var(--navy-900); font-size: 0.95em; margin-top: 2px; }
+.seuil { font-size: 0.72em; color: var(--ink-faint); margin-bottom: 10px; }
+.statut-badge { position: absolute; top: 14px; right: 14px; font-size: 0.62em; font-weight: 700; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; }
+.statut-badge.ok { background: var(--green-bg); color: var(--green); }
+.statut-badge.bas { background: var(--amber-bg); color: var(--amber); }
+.statut-badge.rupture { background: #fdeceb; color: var(--red-600); }
+.card-actions { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.card-actions button { flex: 1; min-width: 80px; padding: 9px 6px; font-size: 0.8em; }
+
+.empty-state { text-align: center; padding: 34px; color: var(--ink-faint); font-size: 0.9em; }
+
+/* ---------- Toast de statut ---------- */
+#status-msg {
+    display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 14px 24px; border-radius: 12px; font-weight: 600; font-size: 0.9em;
+    z-index: 2000; max-width: 80%; text-align: center; box-shadow: var(--shadow-md);
+}
+#status-msg.success { background: var(--green); color: white; }
+#status-msg.error { background: var(--red-600); color: white; }
+#status-msg.info { background: var(--navy-900); color: white; }
+
+/* ---------- Modales (partagées Stock) ---------- */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(18, 21, 43, 0.55); z-index: 1000; overflow-y: auto; }
+.modal-content { background: var(--surface); margin: 5% auto; padding: 26px; width: 400px; max-width: 90%; border-radius: 16px; position: relative; box-shadow: var(--shadow-md); }
+.modal-content h2 { margin: 0 0 6px; color: var(--navy-900); font-size: 1.15em; border: none; padding: 0; }
+.modal-content h3 { margin-top: 0; color: var(--navy-900); font-size: 1.15em; }
+.modal-content p { font-size: 0.88em; color: var(--ink-soft); }
+.modal-content p b { color: var(--ink); font-family: 'IBM Plex Mono', monospace; }
+.modal-content label { display: block; font-size: 0.72em; font-weight: 700; margin: 12px 0 5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+.modal-content input, .modal-content select {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px;
+    font-size: 14px; color: var(--ink); background: var(--surface-alt); font-family: 'Inter', sans-serif; box-sizing: border-box;
+}
+.modal-content input:focus, .modal-content select:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+.close-btn { position: absolute; top: 14px; right: 18px; cursor: pointer; font-size: 22px; color: var(--ink-faint); line-height: 1; }
+.close-btn:hover { color: var(--ink); }
+.modal-footer { display: flex; gap: 10px; margin-top: 22px; }
+.modal-footer button { flex: 1; padding: 11px; }
+.delta-btns { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.delta-btns button { width: 42px; height: 42px; font-size: 1.2em; background: var(--navy-900); color: white; border: none; border-radius: 9px; cursor: pointer; padding: 0; }
+.delta-btns button:hover { background: var(--navy-800); }
+.delta-btns input { text-align: center; flex: 1; }
+.btn-submit {
+    width: 100%; padding: 14px; background: var(--red-600); color: white; border: none;
+    border-radius: 11px; cursor: pointer; font-weight: 600; font-size: 14px; margin-top: 6px;
+    font-family: inherit; box-shadow: var(--shadow-sm); transition: background .15s ease;
+}
+.btn-submit:hover { background: var(--red-700); }
+.btn-submit:disabled { background: var(--ink-faint); cursor: not-allowed; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 0.72em; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+.form-group input, .form-group select {
+    width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; box-sizing: border-box;
+    font-size: 14px; color: var(--ink); background: var(--surface-alt); font-family: 'Inter', sans-serif;
+}
+.form-group input:focus, .form-group select:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+.stock-3cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.stock-3cols div { display: flex; flex-direction: column; }
+
+/* ---------- Page Dépenses ---------- */
+#page-depenses .depenses-layout { display: flex; gap: 22px; align-items: flex-start; padding: 0 30px 50px; }
+#page-depenses .main-col { flex: 3; min-width: 0; }
+#page-depenses .sidebar {
+    flex: 1; min-width: 230px; background: var(--navy-900); border-radius: 16px;
+    padding: 22px; color: white; box-shadow: var(--shadow-sm);
+}
+#page-depenses .sidebar h2 { margin-top: 0; font-size: 1.15em; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+#page-depenses #datetime { color: var(--navy-900); background: var(--surface); padding: 8px; border-radius: 8px; font-size: 0.78em; margin-bottom: 20px; text-align: center; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+#page-depenses #salarie-select { padding: 10px 11px; margin-bottom: 20px; width: 100%; border-radius: 9px; border: 1px solid var(--navy-700); background: var(--surface); color: var(--ink); font-size: 14px; font-family: 'Inter', sans-serif; }
+#page-depenses .sidebar .stat-box { background: var(--surface); color: var(--navy-900); padding: 16px 18px; border-radius: 14px; margin-bottom: 12px; text-align: center; box-shadow: none; }
+#page-depenses .sidebar .stat-box .value { color: var(--red-600); }
+#page-depenses .sidebar-footnote { margin-top: 16px; font-size: 0.75em; opacity: 0.65; text-align: center; line-height: 1.4; }
+#page-depenses .table-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); overflow: hidden; }
+#page-depenses thead th { background: var(--navy-900); color: white; border-bottom: none; }
+#page-depenses .montant { color: var(--red-600); font-weight: 700; text-align: right; font-family: 'IBM Plex Mono', monospace; }
+#page-depenses .top-bar-dep { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+
+@media (max-width: 640px) {
+    .page-header, .tab-nav-wrap { padding-left: 16px; padding-right: 16px; }
+    .panel { padding: 16px; }
+}
+@media (max-width: 900px) {
+    #page-depenses .depenses-layout { flex-direction: column; }
+    #page-depenses .sidebar { width: 100%; }
+}
+#tab-content { padding: 20px 30px 50px; }
+</style>
+</head>
+
+<body>
+
+<nav class="main-nav">
+    <a href="index.html" class="nav-brand">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+        <span class="nav-brand-text">Limited Gasoline</span>
+    </a>
+    <span class="nav-sep"></span>
+    <div class="nav-links">
+        <a href="index.html" class="nav-home">Accueil</a>
+        <a href="Planning.html">Planning</a>
+        <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+        <a href="Ship%20From%20Store.html">Ship From Store</a>
+        <a href="Dashboard.html">Dashboard</a>
+        <a href="Fast%20Fashion.html" class="active">Fast Fashion</a>
+        <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+    </div>
+<a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none; color: var(--ink); text-decoration: none; font-weight: 600;">⚙️ Config</a>
+<button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚸 Déconnexion</button>
+<div class="page-shell">
+    <div id="status-msg"></div>
+
+    <div class="page-header">
+    <div class="heading">
+        <div class="heading-mark">🏷️</div>
+        <div>
+            <h1>Fast Fashion</h1>
+            <p class="heading-sub">Stock &amp; Dépenses — Caisse LTD Mirror Park</p>
+        </div>
+    </div>
+</div>
+
+<div class="tab-nav-wrap">
+    <div class="tab-nav">
+        <button class="tab-btn active" id="tabbtn-stock" onclick="showPage('stock')">📦 Stock</button>
+        <button class="tab-btn" id="tabbtn-depenses" onclick="showPage('depenses')">📋 Dépenses</button>
+    </div>
+</div>
+
+<div id="tab-content">
+
+    <!-- ==================== PAGE STOCK ==================== -->
+    <section id="page-stock" class="page active">
+        <div class="sync-bar">
+            <span class="sync-dot" id="sync-dot"></span>
+            <span class="sync-label" id="sync-label">Synchro auto activée</span>
+            <span>· actualisation auto toutes les 10s</span>
+            <div class="toolbar-fields">
+                <input type="text" class="field-input" id="search" placeholder="🔍 Rechercher un produit..." onkeyup="renderStock()">
+                <select class="field-input" id="filtre-cat" onchange="renderStock()">
+                    <option value="Toutes">Toutes catégories</option>
+                </select>
+            </div>
+            <button class="btn-refresh red" onclick="ouvrirNouveauProduit()">➕ Nouveau produit</button>
+            <button class="btn-refresh small outline" onclick="initStock()">🔄 Actualiser</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box"><div class="label">Produits suivis</div><div class="value" id="stat-total">–</div></div>
+            <div class="stat-box rupture"><div class="label">En rupture</div><div class="value" id="stat-rupture">–</div></div>
+            <div class="stat-box bas"><div class="label">Stock bas</div><div class="value" id="stat-bas">–</div></div>
+            <div class="stat-box"><div class="label">Unités en stock (total)</div><div class="value" id="stat-unites">–</div></div>
+        </div>
+
+        <div class="panel">
+            <h2>⚖️ Capacité de stockage (500 kg / emplacement)</h2>
+            <div class="capacites-grid" id="capacites-grid"></div>
+        </div>
+
+        <div class="panel" id="panel-reappro" style="display:none;">
+            <h2>⚠️ À réapprovisionner</h2>
+            <table>
+                <thead><tr><th>Produit</th><th>Statut</th><th class="num">Stock</th><th class="num">Seuil</th><th class="num">À commander</th></tr></thead>
+                <tbody id="reappro-body"></tbody>
+            </table>
+        </div>
+
+        <div class="panel">
+            <h2>Catalogue &amp; niveaux de stock</h2>
+            <div class="grid-produits" id="produits-grid"><div class="empty-state">Chargement...</div></div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGE DÉPENSES ==================== -->
+    <section id="page-depenses" class="page">
+        <div class="depenses-layout">
+            <div class="main-col">
+                <div class="top-bar-dep">
+                    <div></div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-refresh" onclick="initDepenses()">🔄 Actualiser</button>
+                        <button class="btn-refresh red" onclick="ouvrirAjoutDepense()">+ Ajouter une dépense</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th style="text-align:right;">Montant</th><th>Ajouté par</th></tr></thead>
+                        <tbody id="depenses-body"><tr><td colspan="5" class="empty-state">Chargement...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <aside class="sidebar">
+                <h2>💼 Caisse LTD</h2>
+                <div id="datetime"></div>
+                <select id="salarie-select"><option value="">-- Qui es-tu ? --</option></select>
+                <div class="stat-box"><div class="label">Total dépenses</div><div class="value" id="total-depenses">0.00 $</div></div>
+                <div class="stat-box"><div class="label">Nombre d'entrées</div><div class="value" id="nb-depenses">0</div></div>
+                <div class="sidebar-footnote">Les totaux détaillés (Recette, Bénéfice, Impôt) sont disponibles dans l'onglet "📊 Dashboard" du Google Sheet.</div>
+            </aside>
+        </div>
+    </section>
+
+</div>
+
+<!-- Modale Ajuster stock -->
+<div id="m-ajust" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="fermerModales()">×</span>
+        <h2 id="ajust-titre">Ajuster le stock</h2>
+        <label>Emplacement</label>
+        <select id="ajust-emplacement" onchange="majNouveauStock()">
+            <option value="surface">Surface de vente</option>
+            <option value="caveInterne">Cave Interne</option>
+            <option value="caveExterne">Cave Externe</option>
+        </select>
+        <p>Stock actuel à cet emplacement : <b id="ajust-stock-actuel"></b></p>
+        <label>Motif</label>
+        <select id="ajust-motif">
+            <option value="Réception marchandise">📥 Réception marchandise</option>
+            <option value="Casse / Perte">💥 Casse / Perte</option>
+            <option value="Inventaire / Correction">📋 Inventaire / Correction</option>
+            <option value="Autre">Autre</option>
+        </select>
+        <label>Quantité à ajouter (négatif pour retirer)</label>
+        <div class="delta-btns">
+            <button onclick="changeDelta(-1)">-</button>
+            <input type="number" id="ajust-delta" value="1">
+            <button onclick="changeDelta(1)">+</button>
+        </div>
+        <p>Nouveau stock à cet emplacement : <b id="ajust-nouveau-stock"></b></p>
+        <div class="modal-footer">
+            <button class="btn-refresh gris" onclick="fermerModales()">Annuler</button>
+            <button class="btn-refresh green" onclick="validerAjustement()">Valider</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Transférer stock -->
+<div id="m-transfert" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="fermerModales()">×</span>
+        <h2 id="transfert-titre">Transférer du stock</h2>
+        <label>Depuis</label>
+        <select id="transfert-depuis" onchange="majApercuTransfert()">
+            <option value="surface">Surface de vente</option>
+            <option value="caveInterne">Cave Interne</option>
+            <option value="caveExterne">Cave Externe</option>
+        </select>
+        <p>Disponible : <b id="transfert-dispo"></b></p>
+        <label>Vers</label>
+        <select id="transfert-vers" onchange="majApercuTransfert()">
+            <option value="caveInterne">Cave Interne</option>
+            <option value="caveExterne">Cave Externe</option>
+            <option value="surface">Surface de vente</option>
+        </select>
+        <label>Quantité à transférer</label>
+        <input type="number" id="transfert-qte" value="1" min="1">
+        <div class="modal-footer">
+            <button class="btn-refresh gris" onclick="fermerModales()">Annuler</button>
+            <button class="btn-refresh green" onclick="validerTransfert()">Transférer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Nouveau / Modifier produit -->
+<div id="m-produit" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="fermerModales()">×</span>
+        <h2 id="produit-titre">Nouveau produit</h2>
+        <input type="hidden" id="p-id">
+        <label>Nom du produit</label>
+        <input type="text" id="p-nom">
+        <label>Catégorie</label>
+        <input type="text" id="p-categorie" list="cat-list">
+        <datalist id="cat-list"></datalist>
+        <label>Prix de vente ($)</label>
+        <input type="number" step="0.01" id="p-prix">
+        <label>Coût unitaire ($)</label>
+        <input type="number" step="0.01" id="p-cout">
+        <label>Stock par emplacement</label>
+        <div class="stock-3cols">
+            <div><span style="font-size:0.68em;color:var(--ink-soft);margin-bottom:4px;">Surface</span><input type="number" id="p-stock-surface" value="0"></div>
+            <div><span style="font-size:0.68em;color:var(--ink-soft);margin-bottom:4px;">Cave Int.</span><input type="number" id="p-stock-cave-interne" value="0"></div>
+            <div><span style="font-size:0.68em;color:var(--ink-soft);margin-bottom:4px;">Cave Ext.</span><input type="number" id="p-stock-cave-externe" value="0"></div>
+        </div>
+        <label>Poids unitaire (kg)</label>
+        <input type="number" step="0.01" id="p-poids" value="0">
+        <label>Seuil d'alerte</label>
+        <input type="number" id="p-seuil" value="5">
+        <label>URL de l'image</label>
+        <input type="text" id="p-image">
+        <label>Prix promo ($) — laisser vide si aucune promo</label>
+        <input type="number" step="0.01" id="p-promo">
+        <div class="modal-footer">
+            <button class="btn-refresh gris" onclick="fermerModales()">Annuler</button>
+            <button class="btn-refresh red" onclick="validerProduit()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Ajout Dépense -->
+<div id="m-ajout-depense" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="document.getElementById('m-ajout-depense').style.display='none'">×</span>
+        <h3>Nouvelle dépense</h3>
+        <div class="form-group">
+            <label>Catégorie</label>
+            <select id="f-categorie">
+                <option>Salaire</option>
+                <option>Réapprovisionnement</option>
+                <option>Loyer</option>
+                <option>Facture</option>
+                <option>Taxes</option>
+                <option>Réparation</option>
+                <option>Divers</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="f-description" placeholder="Ex: Livraison boissons">
+        </div>
+        <div class="form-group">
+            <label>Montant ($)</label>
+            <input type="number" id="f-montant" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <button class="btn-submit" id="btn-envoyer-depense" onclick="envoyerDepense()">Ajouter au suivi</button>
+    </div>
+</div>
+
+<script>
+// ==================================================================
+// Configuration commune — mêmes identifiants que la Caisse / Dashboard
+// ==================================================================
+const STOCK_POLL_MS = 10000;
+
+const CAPACITE_STOCKAGE_KG = 500; // capacité max (kg) de chaque emplacement de stockage
+
+const EMPLACEMENTS_LABELS = {
+    surface: "Surface de vente",
+    caveInterne: "Cave Interne",
+    caveExterne: "Cave Externe"
+};
+
+let statusTimeout = null;
+function showMessage(text, type = "info", durationMs = 4000) {
+    const box = document.getElementById('status-msg');
+    box.className = type;
+    box.innerText = text;
+    box.style.display = 'block';
+    clearTimeout(statusTimeout);
+    if (durationMs > 0) statusTimeout = setTimeout(() => { box.style.display = 'none'; }, durationMs);
+}
+
+function gvizUrl(sheet) {
+    throw new Error('Google Sheets a été remplacé par Supabase.');
+}
+
+async function envoyerAction(payload) {
+    try {
+        if (payload.type === 'nouveauProduit') return { success: true, id: (await ProductService.create(toProductPayload(payload))).id };
+        if (payload.type === 'modifierProduit') { await ProductService.update(payload.id, toProductPayload(payload)); return { success: true }; }
+        if (payload.type === 'ajusterStock') {
+            const product = await ProductService.getById(payload.id);
+            const field = stockField(payload.emplacement);
+            const value = Number(product[field] || 0) + Number(payload.delta);
+            // stock_total est une colonne générée par Postgres, elle ne s'écrit jamais directement.
+            const saved = await ProductService.update(payload.id, { [field]: value });
+            return { success: true, emplacement: payload.emplacement, nouveauStockEmplacement: value, nouveauStockTotal: saved.stock_total };
+        }
+        if (payload.type === 'transfererStock') {
+            const product = await ProductService.getById(payload.id);
+            const from = stockField(payload.depuis), to = stockField(payload.vers), quantity = Number(payload.quantite);
+            if (Number(product[from] || 0) < quantity) throw new Error('Stock insuffisant.');
+            await ProductService.update(payload.id, { [from]: Number(product[from] || 0) - quantity, [to]: Number(product[to] || 0) + quantity });
+            return { success: true, quantite: quantity, depuis: payload.depuis, vers: payload.vers };
+        }
+        if (payload.type === 'nouvelleDepense') { await executeSupabase(window.supabaseClient.from('charges').insert({ date_charge: new Date().toISOString().slice(0, 10), categorie: payload.categorie, description: payload.description, montant: payload.montant, declarant: payload.ajoutePar })); return { success: true }; }
+        throw new Error('Action Supabase inconnue.');
+    } catch (e) {
+        console.error(e);
+        return { success: false, error: e.message };
+    }
+}
+
+function stockField(emplacement) { return ({ surface: 'stock_surface_vente', caveInterne: 'stock_cave_interne', caveExterne: 'stock_cave_externe' })[emplacement]; }
+// stock_total est une colonne générée par Postgres (somme des 3 emplacements), on ne l'envoie jamais.
+function toProductPayload(p) { return { nom: p.nom, categorie: p.categorie, prix: Number(p.prix || 0), cout_unitaire: Number(p.cout || 0), stock_surface_vente: Number(p.stockSurface || 0), stock_cave_interne: Number(p.stockCaveInterne || 0), stock_cave_externe: Number(p.stockCaveExterne || 0), seuil_alerte: Number(p.seuil || 0), image_url: p.image, prix_promo: p.promo ? Number(p.promo) : null } }
+
+/* ---------- Navigation par onglets ---------- */
+function showPage(name) {
+    document.getElementById('page-stock').classList.toggle('active', name === 'stock');
+    document.getElementById('page-depenses').classList.toggle('active', name === 'depenses');
+    document.getElementById('tabbtn-stock').classList.toggle('active', name === 'stock');
+    document.getElementById('tabbtn-depenses').classList.toggle('active', name === 'depenses');
+}
+
+/* ==================================================================
+   MODULE STOCK
+   Colonnes 📦 Produits : A ID(0) B Produit(1) C Catégorie(2) D Prix(3)
+   E Coût(4) F Stock Total(5) G Seuil(6) H Statut(7) I Image URL(8) J Prix Promo(9)
+   K Stock Surface(10) L Stock Cave Interne(11) M Stock Cave Externe(12)
+   ================================================================== */
+let produitsData = [];
+let stockPollInterval = null;
+let isModalOpen = false;
+let produitCourantId = null;
+let ajustContext = null;
+let transfertContext = null;
+
+function fermerModales() {
+    isModalOpen = false;
+    document.getElementById('m-ajust').style.display = 'none';
+    document.getElementById('m-produit').style.display = 'none';
+    document.getElementById('m-transfert').style.display = 'none';
+}
+
+function statutProduit(qty, seuil) {
+    if (qty <= 0) return 'rupture';
+    if (qty <= seuil) return 'bas';
+    return 'ok';
+}
+function quantiteACommander(qty, seuil) { return Math.max(0, (seuil * 2) - qty); }
+
+async function initStock() {
+    document.getElementById('produits-grid').innerHTML = '<div class="empty-state">Chargement...</div>';
+    await chargerDonneesStock();
+    startStockAutoSync();
+}
+
+async function chargerDonneesStock() {
+    try {
+        const rows = await ProductService.getAll({ orderBy: 'nom' });
+        produitsData = rows.map(row => ({ id: row.id, nom: row.nom || '', cat: row.categorie || '', prix: Number(row.prix || 0), cout: Number(row.cout_unitaire || 0), stock: Number(row.stock_total || 0), seuil: Number(row.seuil_alerte || 5), image: row.image_url || '', promo: row.prix_promo || '', stockSurface: Number(row.stock_surface_vente || 0), stockCaveInterne: Number(row.stock_cave_interne || 0), stockCaveExterne: Number(row.stock_cave_externe || 0), poids: 0 }));
+
+        majFiltresCategorie();
+        renderStatsStock();
+        renderCapacites();
+        renderReappro();
+        renderStock();
+        return true;
+    } catch (e) {
+        console.error("Erreur chargement stock :", e);
+        return false;
+    }
+}
+
+function majFiltresCategorie() {
+    const categories = [...new Set(produitsData.map(p => p.cat).filter(Boolean))];
+    const filtre = document.getElementById('filtre-cat');
+    const val = filtre.value;
+    filtre.innerHTML = '<option value="Toutes">Toutes catégories</option>';
+    categories.forEach(c => { const o = document.createElement('option'); o.value = c; o.text = c; filtre.add(o); });
+    filtre.value = val || "Toutes";
+
+    const catList = document.getElementById('cat-list');
+    catList.innerHTML = '';
+    categories.forEach(c => { const o = document.createElement('option'); o.value = c; catList.appendChild(o); });
+}
+
+function startStockAutoSync() {
+    if (stockPollInterval) clearInterval(stockPollInterval);
+    stockPollInterval = setInterval(refreshStockOnly, STOCK_POLL_MS);
+}
+
+async function refreshStockOnly() {
+    if (isModalOpen) return;
+    const syncLabel = document.getElementById('sync-label');
+    syncLabel.innerText = "Synchronisation...";
+    const ok = await chargerDonneesStock();
+    syncLabel.innerText = ok ? "Synchronisé à " + new Date().toLocaleTimeString('fr-FR') : "⚠️ Échec de synchro";
+}
+
+function renderStatsStock() {
+    const rupture = produitsData.filter(p => statutProduit(p.stock, p.seuil) === 'rupture').length;
+    const bas = produitsData.filter(p => statutProduit(p.stock, p.seuil) === 'bas').length;
+    const unites = produitsData.reduce((s, p) => s + p.stock, 0);
+    document.getElementById('stat-total').innerText = produitsData.length;
+    document.getElementById('stat-rupture').innerText = rupture;
+    document.getElementById('stat-bas').innerText = bas;
+    document.getElementById('stat-unites').innerText = unites;
+}
+
+function renderCapacites() {
+    const emplacements = [
+        { key: 'stockSurface', label: 'Surface de vente', id: 'surface' },
+        { key: 'stockCaveInterne', label: 'Cave Interne', id: 'caveInterne' },
+        { key: 'stockCaveExterne', label: 'Cave Externe', id: 'caveExterne' }
+    ];
+
+    const html = emplacements.map(function(e) {
+        const poidsTotal = produitsData.reduce(function(s, p) { return s + (p.poids * p[e.key]); }, 0);
+        const pct = Math.min(100, (poidsTotal / CAPACITE_STOCKAGE_KG) * 100);
+        let classe = 'ok';
+        if (pct >= 90) classe = 'rupture';
+        else if (pct >= 70) classe = 'bas';
+
+        return `
+            <div class="capacite-box ${classe}">
+                <div class="capacite-head">
+                    <span class="capacite-label">${e.label}</span>
+                    <span class="capacite-poids">${poidsTotal.toFixed(1)} / ${CAPACITE_STOCKAGE_KG} kg</span>
+                </div>
+                <div class="capacite-bar-track">
+                    <div class="capacite-bar-fill ${classe}" style="width:${pct.toFixed(1)}%"></div>
+                </div>
+                <div class="capacite-pct">${pct.toFixed(0)}% rempli${pct >= 90 ? ' — ⚠️ presque plein' : ''}</div>
+            </div>`;
+    }).join('');
+
+    document.getElementById('capacites-grid').innerHTML = html;
+}
+
+function renderReappro() {
+    const panel = document.getElementById('panel-reappro');
+    const body = document.getElementById('reappro-body');
+    const aReappro = produitsData.filter(p => p.stock <= p.seuil).sort((a, b) => (a.stock - a.seuil) - (b.stock - b.seuil));
+    if (aReappro.length === 0) { panel.style.display = 'none'; body.innerHTML = ''; return; }
+    panel.style.display = 'block';
+    body.innerHTML = aReappro.map(p => {
+        const statut = statutProduit(p.stock, p.seuil);
+        const label = statut === 'rupture' ? 'Rupture' : 'Stock bas';
+        return `<tr class="${statut}"><td>${p.nom}</td><td><span class="badge-mini">${label}</span></td><td class="num">${p.stock}</td><td class="num">${p.seuil}</td><td class="num commander">${quantiteACommander(p.stock, p.seuil)}</td></tr>`;
+    }).join('');
+}
+
+function renderStock() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const filtreCat = document.getElementById('filtre-cat').value;
+    const grid = document.getElementById('produits-grid');
+    grid.innerHTML = '';
+
+    const filtered = produitsData.filter(p => p.nom.toLowerCase().includes(search) && (filtreCat === "Toutes" || p.cat === filtreCat));
+    if (filtered.length === 0) { grid.innerHTML = '<div class="empty-state">Aucun produit trouvé.</div>'; return; }
+
+    filtered.sort((a, b) => statutProduit(a.stock, a.seuil).localeCompare(statutProduit(b.stock, b.seuil)));
+
+    filtered.forEach(p => {
+        const statut = statutProduit(p.stock, p.seuil);
+        const label = statut === 'rupture' ? 'Rupture' : (statut === 'bas' ? 'Stock bas' : 'OK');
+        const badgeClasse = statut === 'ok' ? '' : statut;
+        const ctxAjust = JSON.stringify({ id: p.id, nom: p.nom, stockSurface: p.stockSurface, stockCaveInterne: p.stockCaveInterne, stockCaveExterne: p.stockCaveExterne });
+        const ctxModif = JSON.stringify({ id: p.id, nom: p.nom, cat: p.cat, prix: p.prix, cout: p.cout, seuil: p.seuil, image: p.image, promo: p.promo || "", stockSurface: p.stockSurface, stockCaveInterne: p.stockCaveInterne, stockCaveExterne: p.stockCaveExterne, poids: p.poids });
+        const card = document.createElement('div');
+        card.className = 'produit-card ' + statut;
+        card.innerHTML = `
+            <span class="statut-badge ${statut}">${label}</span>
+            ${p.image ? `<img src="${p.image}">` : ''}
+            <div class="nom">${p.nom}</div>
+            <div class="cat">${p.cat} • ${p.id} • ${p.poids.toFixed(2)} kg/u</div>
+            <div class="prix">${p.prix.toFixed(2)} $ ${p.promo ? `<span class="promo">(promo: ${Number(p.promo).toFixed(2)} $)</span>` : ''}</div>
+            <div class="stock-line"><span>Stock total :</span><span class="badge-stock ${badgeClasse}">${p.stock}</span></div>
+            <div class="stock-detail">
+                <div class="emp"><span class="lbl">Surface</span><span class="val">${p.stockSurface}</span></div>
+                <div class="emp"><span class="lbl">Cave Int.</span><span class="val">${p.stockCaveInterne}</span></div>
+                <div class="emp"><span class="lbl">Cave Ext.</span><span class="val">${p.stockCaveExterne}</span></div>
+            </div>
+            <div class="seuil">Seuil d'alerte : ${p.seuil}</div>
+            <div class="card-actions">
+                <button class="btn-refresh green" onclick='ouvrirAjustement(${ctxAjust})'>📦 Ajuster</button>
+                <button class="btn-refresh outline" onclick='ouvrirTransfert(${ctxAjust})'>🔁 Transférer</button>
+                <button class="btn-refresh outline" onclick='ouvrirModifierProduit(${ctxModif})'>✏️ Modifier</button>
+            </div>`;
+        grid.appendChild(card);
+    });
+}
+
+function stockPourEmplacement(ctx, emplacement) {
+    if (emplacement === 'surface') return ctx.stockSurface;
+    if (emplacement === 'caveInterne') return ctx.stockCaveInterne;
+    return ctx.stockCaveExterne;
+}
+
+function ouvrirAjustement(ctx) {
+    ajustContext = ctx;
+    isModalOpen = true;
+    document.getElementById('ajust-titre').innerText = "Ajuster le stock — " + ctx.nom;
+    document.getElementById('ajust-emplacement').value = 'surface';
+    document.getElementById('ajust-delta').value = 1;
+    majNouveauStock();
+    document.getElementById('m-ajust').style.display = 'block';
+}
+
+function changeDelta(sens) {
+    const input = document.getElementById('ajust-delta');
+    input.value = (parseInt(input.value) || 0) + sens;
+    majNouveauStock();
+}
+
+document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'ajust-delta') majNouveauStock();
+    if (e.target && e.target.id === 'transfert-qte') majApercuTransfert();
+});
+
+function majNouveauStock() {
+    const emplacement = document.getElementById('ajust-emplacement').value;
+    const stockActuel = stockPourEmplacement(ajustContext, emplacement);
+    const delta = parseInt(document.getElementById('ajust-delta').value) || 0;
+    document.getElementById('ajust-stock-actuel').innerText = stockActuel;
+    document.getElementById('ajust-nouveau-stock').innerText = stockActuel + delta;
+}
+
+async function validerAjustement() {
+    const emplacement = document.getElementById('ajust-emplacement').value;
+    const delta = parseInt(document.getElementById('ajust-delta').value) || 0;
+    const motif = document.getElementById('ajust-motif').value;
+    if (delta === 0) { showMessage("Entrez une quantité différente de 0.", "error"); return; }
+
+    const resultat = await envoyerAction({ type: "ajusterStock", id: ajustContext.id, delta, emplacement, motif, employe: "Site Web - Stock" });
+    if (!resultat.success) { showMessage("❌ " + resultat.error, "error", 6000); return; }
+    showMessage(`✅ ${resultat.emplacement} mis à jour : ${resultat.nouveauStockEmplacement} (total : ${resultat.nouveauStockTotal})`, "success");
+    fermerModales();
+    initStock();
+}
+
+/* ---------- Transfert entre emplacements ---------- */
+function ouvrirTransfert(ctx) {
+    transfertContext = ctx;
+    isModalOpen = true;
+    document.getElementById('transfert-titre').innerText = "Transférer — " + ctx.nom;
+    document.getElementById('transfert-depuis').value = 'surface';
+    document.getElementById('transfert-vers').value = 'caveInterne';
+    document.getElementById('transfert-qte').value = 1;
+    majApercuTransfert();
+    document.getElementById('m-transfert').style.display = 'block';
+}
+
+function majApercuTransfert() {
+    const depuis = document.getElementById('transfert-depuis').value;
+    document.getElementById('transfert-dispo').innerText = stockPourEmplacement(transfertContext, depuis);
+}
+
+async function validerTransfert() {
+    const depuis = document.getElementById('transfert-depuis').value;
+    const vers = document.getElementById('transfert-vers').value;
+    const quantite = parseInt(document.getElementById('transfert-qte').value) || 0;
+
+    if (depuis === vers) { showMessage("Choisissez deux emplacements différents.", "error"); return; }
+    if (quantite <= 0) { showMessage("Entrez une quantité valide.", "error"); return; }
+
+    const resultat = await envoyerAction({ type: "transfererStock", id: transfertContext.id, depuis, vers, quantite, employe: "Site Web - Stock" });
+    if (!resultat.success) { showMessage("❌ " + resultat.error, "error", 6000); return; }
+    showMessage(`✅ ${resultat.quantite} transféré(s) : ${resultat.depuis} → ${resultat.vers}`, "success");
+    fermerModales();
+    initStock();
+}
+
+function ouvrirNouveauProduit() {
+    produitCourantId = null;
+    isModalOpen = true;
+    document.getElementById('produit-titre').innerText = "Nouveau produit";
+    ['p-id', 'p-nom', 'p-categorie', 'p-prix', 'p-cout', 'p-image', 'p-promo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('p-stock-surface').value = 0;
+    document.getElementById('p-stock-cave-interne').value = 0;
+    document.getElementById('p-stock-cave-externe').value = 0;
+    document.getElementById('p-poids').value = 0;
+    document.getElementById('p-seuil').value = 5;
+    document.getElementById('m-produit').style.display = 'block';
+}
+
+function ouvrirModifierProduit(ctx) {
+    produitCourantId = ctx.id;
+    isModalOpen = true;
+    document.getElementById('produit-titre').innerText = "Modifier — " + ctx.nom;
+    document.getElementById('p-id').value = ctx.id;
+    document.getElementById('p-nom').value = ctx.nom;
+    document.getElementById('p-categorie').value = ctx.cat;
+    document.getElementById('p-prix').value = ctx.prix;
+    document.getElementById('p-cout').value = ctx.cout;
+    document.getElementById('p-stock-surface').value = ctx.stockSurface;
+    document.getElementById('p-stock-cave-interne').value = ctx.stockCaveInterne;
+    document.getElementById('p-stock-cave-externe').value = ctx.stockCaveExterne;
+    document.getElementById('p-poids').value = ctx.poids || 0;
+    document.getElementById('p-seuil').value = ctx.seuil;
+    document.getElementById('p-image').value = ctx.image;
+    document.getElementById('p-promo').value = ctx.promo;
+    document.getElementById('m-produit').style.display = 'block';
+}
+
+async function validerProduit() {
+    const nom = document.getElementById('p-nom').value.trim();
+    if (!nom) { showMessage("Le nom du produit est obligatoire.", "error"); return; }
+
+    const payloadBase = {
+        nom: nom,
+        categorie: document.getElementById('p-categorie').value.trim() || "Divers",
+        prix: document.getElementById('p-prix').value,
+        cout: document.getElementById('p-cout').value,
+        stockSurface: document.getElementById('p-stock-surface').value,
+        stockCaveInterne: document.getElementById('p-stock-cave-interne').value,
+        stockCaveExterne: document.getElementById('p-stock-cave-externe').value,
+        poids: document.getElementById('p-poids').value,
+        seuil: document.getElementById('p-seuil').value,
+        image: document.getElementById('p-image').value.trim(),
+        promo: document.getElementById('p-promo').value
+    };
+
+    const resultat = produitCourantId
+        ? await envoyerAction(Object.assign({ type: "modifierProduit", id: produitCourantId }, payloadBase))
+        : await envoyerAction(Object.assign({ type: "nouveauProduit" }, payloadBase));
+
+    if (!resultat.success) { showMessage("❌ " + resultat.error, "error", 6000); return; }
+    showMessage(produitCourantId ? "✅ Produit modifié." : "✅ Produit créé (" + resultat.id + ")", "success");
+    fermerModales();
+    initStock();
+}
+
+/* ==================================================================
+   MODULE DÉPENSES
+   Colonnes 👥 Employés : données à partir de la ligne 3 -> A Nom(0)
+   Colonnes 💰 Charges  : données à partir de la ligne 3 ->
+     A Date(0) B Catégorie(1) C Description(2) D Montant(3) E Commentaire(4)
+   ================================================================== */
+let salarieData = [];
+
+setInterval(() => {
+    const el = document.getElementById('datetime');
+    if (el) el.innerText = new Date().toLocaleString('fr-FR');
+}, 1000);
+
+function ouvrirAjoutDepense() {
+    document.getElementById('f-categorie').value = 'Divers';
+    document.getElementById('f-description').value = '';
+    document.getElementById('f-montant').value = '';
+    document.getElementById('m-ajout-depense').style.display = 'block';
+}
+
+async function envoyerDepense() {
+    const categorie = document.getElementById('f-categorie').value;
+    const description = document.getElementById('f-description').value.trim();
+    const montant = parseFloat(document.getElementById('f-montant').value);
+    const salarie = document.getElementById('salarie-select').value || "Non renseigné";
+
+    if (!description) { showMessage("Merci d'indiquer une description.", "error"); return; }
+    if (!montant || montant <= 0) { showMessage("Merci d'indiquer un montant valide.", "error"); return; }
+
+    const btn = document.getElementById('btn-envoyer-depense');
+    btn.disabled = true;
+    btn.innerText = "Envoi en cours...";
+
+    const resultat = await envoyerAction({
+        type: "nouvelleDepense",
+        date: new Date().toLocaleDateString('fr-FR'),
+        categorie, description, montant, ajoutePar: salarie
+    });
+
+    btn.disabled = false;
+    btn.innerText = "Ajouter au suivi";
+
+    if (!resultat.success) { showMessage("❌ " + (resultat.error || "Erreur lors de l'envoi."), "error", 6000); return; }
+    showMessage("✅ Dépense ajoutée.", "success");
+    document.getElementById('m-ajout-depense').style.display = 'none';
+    setTimeout(initDepenses, 1000);
+}
+
+async function initDepenses() {
+    document.getElementById('depenses-body').innerHTML = '<tr><td colspan="5" class="empty-state">Chargement...</td></tr>';
+    try {
+        const [employees, expenses] = await Promise.all([
+            EmployeeService.getAll({ orderBy: 'nom' }),
+            executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(500))
+        ]);
+        salarieData = employees.map(employee => employee.nom).filter(Boolean);
+
+        const select = document.getElementById('salarie-select');
+        const valeurActuelle = select.value || localStorage.getItem('salarieName') || '';
+        select.innerHTML = '<option value="">-- Qui es-tu ? --</option>';
+        salarieData.forEach(nom => { const o = document.createElement('option'); o.value = nom; o.text = nom; select.add(o); });
+        select.value = valeurActuelle;
+        select.onchange = () => localStorage.setItem('salarieName', select.value);
+
+        renderDepenses(expenses.map(expense => ({ c: [{ v: expense.date_charge ? new Date(expense.date_charge).toLocaleDateString('fr-FR') : '' }, { v: expense.categorie || '' }, { v: expense.description || '' }, { v: expense.montant || 0 }, { v: expense.declarant || '' }] })));
+    } catch (e) {
+        document.getElementById('depenses-body').innerHTML = `<tr><td colspan="5" class="empty-state">⚠️ Erreur de chargement : ${e.message}</td></tr>`;
+    }
+}
+
+function renderDepenses(rows) {
+    const body = document.getElementById('depenses-body');
+    body.innerHTML = '';
+    let total = 0, count = 0;
+
+    rows.forEach(row => {
+        if (!row.c[0] || !row.c[0].v) return;
+        const date = row.c[0]?.v || '', categorie = row.c[1]?.v || '', description = row.c[2]?.v || '';
+        const montant = parseFloat(row.c[3]?.v) || 0, commentaire = row.c[4]?.v || '';
+        total += montant; count++;
+        body.innerHTML += `<tr><td>${date}</td><td>${categorie}</td><td>${description}</td><td class="montant">${montant.toFixed(2)} $</td><td>${commentaire}</td></tr>`;
+    });
+
+    if (count === 0) body.innerHTML = '<tr><td colspan="5" class="empty-state">Aucune dépense enregistrée pour le moment.</td></tr>';
+    document.getElementById('total-depenses').innerText = total.toFixed(2) + ' $';
+    document.getElementById('nb-depenses').innerText = count;
+}
+
+/* ---------- Démarrage ---------- */
+initStock();
+initDepenses();
+</script>
+</body>
+</html>

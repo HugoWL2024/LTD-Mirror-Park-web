@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Caisse LTD - Comptabilité & Factures</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+    <script src="auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/services/products.js"></script>
+    <script src="js/services/employees.js"></script>
+    <script src="js/services/invoices.js"></script>
+    <script src="js/services/settings.js"></script>
+    <style>
+        .heading-mark svg { width: 20px; height: 20px; color: white; }
+
+        h1 {
+            color: var(--navy-900);
+            font-size: 1.4em;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .heading-sub {
+            font-size: 0.78em;
+            color: var(--ink-soft);
+            margin: 2px 0 0;
+        }
+
+        /* ---------- Onglets ---------- */
+        .tab-nav {
+            display: inline-flex;
+            gap: 4px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            border: none;
+            background: transparent;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.88em;
+            color: var(--ink-soft);
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .tab-btn:hover:not(.active) { background: var(--surface-alt); color: var(--ink); }
+
+        .tab-btn.active {
+            background: var(--navy-900);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ---------- Actions / synchro communes ---------- */
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sync-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.78em;
+            color: var(--ink-soft);
+        }
+
+        .sync-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            flex-shrink: 0;
+        }
+
+        .sync-dot.warn { background: var(--amber); }
+        .sync-dot.error { background: var(--red-600); }
+
+        .sync-label.syncing { color: var(--red-600); font-weight: 600; }
+
+        .sync-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 11px 16px;
+            margin-bottom: 20px;
+            font-size: 0.82em;
+            color: var(--ink-soft);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .sync-bar .sync-note {
+            font-size: 0.9em;
+            color: var(--ink-faint);
+        }
+
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--navy-900);
+            color: white;
+            border: none;
+            padding: 11px 17px;
+            cursor: pointer;
+            border-radius: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            font-size: 13.5px;
+            box-shadow: var(--shadow-sm);
+            transition: background .15s ease, transform .1s ease;
+        }
+
+        .btn-refresh:hover { background: var(--navy-800); }
+        .btn-refresh:active { transform: scale(0.97); }
+
+        .btn-refresh svg { width: 15px; height: 15px; transition: transform .5s ease; }
+        .btn-refresh.spinning svg { transform: rotate(360deg); }
+
+        .btn-refresh.small {
+            padding: 8px 14px;
+            font-size: 12.5px;
+            background: var(--surface-alt);
+            color: var(--navy-900);
+            border: 1px solid var(--line);
+            box-shadow: none;
+            margin-left: auto;
+        }
+
+        .btn-refresh.small:hover { background: var(--paper); }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--navy-900);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 11px;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            box-shadow: var(--shadow-md);
+            transition: background .15s ease, transform .1s ease;
+        }
+
+        .btn-primary:hover { background: var(--navy-800); }
+        .btn-primary:active { transform: scale(0.98); }
+
+        #fatal-error-banner {
+            display: none;
+            background: var(--red-600);
+            color: white;
+            padding: 13px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-label {
+            font-size: 0.72em;
+            font-weight: 700;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 24px 0 10px 2px;
+        }
+
+        /* ---------- Cartes statistiques ---------- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+
+        .treso-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .stat-box {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow .15s ease, transform .15s ease;
+        }
+
+        .stat-box:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+        .stat-box .label {
+            font-size: 0.72em;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-box .value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.65em;
+            font-weight: 600;
+            color: var(--navy-900);
+            margin-top: 8px;
+        }
+
+        .stat-box .value.gold { color: #9c7c0e; }
+
+        .stat-box .sous-valeur {
+            font-size: 0.7em;
+            color: var(--ink-faint);
+            margin-top: 6px;
+        }
+
+        .stat-box.recette { border-top: 3px solid var(--green); }
+        .stat-box.recette .value { color: var(--green); }
+        .stat-box.recette .label::before { content: "▲"; color: var(--green); font-size: 0.85em; }
+
+        .stat-box.depense { border-top: 3px solid var(--red-600); }
+        .stat-box.depense .value { color: var(--red-600); }
+        .stat-box.depense .label::before { content: "▼"; color: var(--red-600); font-size: 0.85em; }
+
+        /* ---------- Panneaux ---------- */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 22px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .panel h2 {
+            color: var(--navy-900);
+            font-size: 1.05em;
+            font-weight: 700;
+            margin: 0 0 14px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--navy-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-note {
+            font-size: 0.8em;
+            color: var(--ink-soft);
+            margin-top: -6px;
+            margin-bottom: 16px;
+        }
+
+        canvas { max-height: 300px; }
+
+        /* ---------- Tableaux communs ---------- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 10px;
+            font-size: 0.72em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--ink-soft);
+            border-bottom: 2px solid var(--line);
+        }
+
+        tbody td {
+            padding: 11px 10px;
+            border-bottom: 1px solid var(--surface-alt);
+            font-size: 0.9em;
+            color: var(--ink);
+        }
+
+        tfoot td {
+            padding: 12px 10px;
+            font-weight: 700;
+            color: var(--navy-900);
+            border-top: 2px solid var(--line);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        tfoot td:first-child { font-family: 'Inter', sans-serif; }
+
+        tbody tr { transition: background .1s ease; }
+        tbody tr:hover { background: var(--surface-alt); }
+        tbody tr:nth-child(even) { background: var(--surface-alt); }
+        tbody tr:nth-child(even):hover { background: var(--paper); }
+
+        .num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .badge {
+            font-size: 0.75em;
+            background: var(--surface-alt);
+            border: 1px solid var(--line);
+            color: var(--navy-900);
+            padding: 4px 11px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .employe { font-weight: 600; color: var(--navy-800); }
+
+        .fid-count { font-weight: 700; color: var(--navy-900); }
+        .fid-count.warn { color: var(--amber); }
+        .fid-note { display: block; font-size: 0.78em; color: var(--ink-faint); font-weight: 400; margin-top: 2px; }
+        .fid-note.warn { color: var(--amber); font-weight: 600; }
+
+        .tag {
+            display: inline-block;
+            font-size: 0.75em;
+            font-weight: 700;
+            padding: 3px 11px;
+            border-radius: 20px;
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .remise { color: var(--red-600); font-weight: 600; }
+        .remise.zero { color: var(--ink-faint); font-weight: 400; }
+
+        .table-scroll { overflow-x: auto; }
+
+        .empty-state {
+            text-align: center;
+            padding: 34px;
+            color: var(--ink-faint);
+            font-size: 0.9em;
+        }
+
+        .chart-legende-perso {
+            font-size: 0.82em;
+            color: var(--ink-soft);
+            margin-top: -6px;
+            margin-bottom: 14px;
+        }
+
+        .chart-details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 0.82em;
+        }
+
+        .chart-details-table th {
+            text-align: right;
+            padding: 8px 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.03em;
+            color: var(--ink-soft);
+            border-bottom: 2px solid var(--line);
+        }
+
+        .chart-details-table th:first-child { text-align: left; }
+
+        .chart-details-table td {
+            text-align: right;
+            padding: 9px 10px;
+            border-bottom: 1px solid var(--surface-alt);
+            color: var(--ink);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .chart-details-table td:first-child {
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chart-details-table tr.en-cours td {
+            font-weight: 700;
+            color: var(--amber);
+            background: var(--amber-bg);
+        }
+
+        /* ---------- Filtres (page Factures) ---------- */
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .field { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
+
+        .field label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .field select, .field input {
+            padding: 9px 11px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            font-size: 14px;
+            color: var(--ink);
+            background: var(--surface-alt);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .field select:focus, .field input:focus {
+            outline: 2px solid var(--amber);
+            outline-offset: 1px;
+        }
+
+        .hour-range { display: flex; align-items: center; gap: 8px; }
+        .hour-range span { color: var(--ink-soft); font-size: 13px; }
+
+        .reset-btn {
+            background: var(--navy-900);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            height: 39px;
+            font-family: inherit;
+            transition: background .15s ease;
+        }
+
+        .reset-btn:hover { background: var(--navy-800); }
+
+        .count-pill {
+            margin-left: auto;
+            align-self: center;
+            font-size: 12.5px;
+            color: var(--ink-soft);
+            background: var(--surface-alt);
+            border: 1px solid var(--line);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 18px 14px 40px; }
+            .panel { padding: 16px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="main-nav">
+        <a href="index.html" class="nav-brand">
+            <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+            <span class="nav-brand-text">Limited Gasoline</span>
+        </a>
+        <span class="nav-sep"></span>
+        <div class="nav-links">
+            <a href="index.html" class="nav-home">Accueil</a>
+            <a href="Planning.html">Planning</a>
+            <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+            <a href="Ship%20From%20Store.html">Ship From Store</a>
+            <a href="Dashboard.html" class="active">Dashboard</a>
+            <a href="Fast%20Fashion.html">Fast Fashion</a>
+            <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+        </div>
+        <a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none; color: var(--ink); text-decoration: none; font-weight: 600;">⚙️ Config</a>
+        <button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚪 Déconnexion</button>
+    </nav>
+
+    <div class="page-shell">
+        <div id="fatal-error-banner"></div>
+
+        <div class="top-bar">
+        <div class="heading">
+            <div class="heading-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div>
+                <h1>Caisse LTD</h1>
+                <p class="heading-sub">Comptabilité &amp; suivi des factures — Mirror Park</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-nav">
+        <button class="tab-btn active" id="tab-btn-dashboard" onclick="showPage('dashboard')">📊 Dashboard</button>
+        <button class="tab-btn" id="tab-btn-factures" onclick="showPage('factures')">🧾 Registre des Factures</button>
+        <button class="tab-btn" id="tab-btn-cloture" onclick="showPage('cloture')">📅 Clôturation de la semaine</button>
+        <button class="tab-btn" id="tab-btn-charges" onclick="showPage('charges')">💰 Historique des Charges</button>
+    </div>
+
+    <!-- ==================== PAGE 1 : DASHBOARD ==================== -->
+    <section id="page-dashboard" class="page active">
+
+        <div class="sync-bar">
+            <span class="sync-dot" id="dash-sync-dot"></span>
+            <span class="sync-label" id="sync-label">Synchro auto activée</span>
+            <span class="sync-note">· actualisation auto toutes les 15s</span>
+            <button class="btn-refresh small" id="btn-refresh" onclick="handleManualRefresh()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Actualiser
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box recette">
+                <div class="label">Recette (semaine en cours)</div>
+                <div class="value" id="stat-recette">–</div>
+            </div>
+            <div class="stat-box depense">
+                <div class="label">Dépenses (semaine en cours)</div>
+                <div class="value" id="stat-depenses">–</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Bénéfice Brut</div>
+                <div class="value" id="stat-brut">–</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Impôt estimé</div>
+                <div class="value" id="stat-impot">–</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Bénéfice Net</div>
+                <div class="value" id="stat-net">–</div>
+            </div>
+        </div>
+
+        <div class="section-label">💵 Trésorerie &amp; Stock</div>
+        <div class="treso-grid">
+            <div class="stat-box">
+                <div class="label">Solde Bancaire (estimé)</div>
+                <div class="value" id="stat-solde-bancaire">–</div>
+                <div class="sous-valeur">Dernière saisie + mouvements de la semaine</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Valeur des Stocks</div>
+                <div class="value" id="stat-valeur-stock">–</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Détail de l'impôt par tranche (semaine en cours)</h2>
+            <table class="chart-details-table" id="impot-details"></table>
+        </div>
+
+        <div class="panel">
+            <h2>Évolution du CA (semaines clôturées + semaine en cours)</h2>
+            <p class="chart-legende-perso">🔵 Semaines clôturées &nbsp;&nbsp; 🟠 Semaine en cours (provisoire, segment en pointillés)</p>
+            <canvas id="chart-ca"></canvas>
+            <table class="chart-details-table" id="chart-ca-details"></table>
+        </div>
+
+        <div class="panel">
+            <h2>Recettes &amp; Dépenses par jour (semaine en cours)</h2>
+            <canvas id="chart-jour"></canvas>
+        </div>
+
+        <div class="panel">
+            <h2>Performance des employés</h2>
+            <p class="panel-note">Sert de base pour le calcul des primes / salaires variables (plafonné à 18 000 $/semaine).</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Salarié</th>
+                        <th class="num">Ventes (semaine)</th>
+                        <th class="num">CA (semaine)</th>
+                        <th class="num">Panier Moyen</th>
+                        <th class="num">Cartes fidélité</th>
+                        <th class="num">Salaire</th>
+                    </tr>
+                </thead>
+                <tbody id="perf-body">
+                    <tr><td colspan="6" class="empty-state">Chargement...</td></tr>
+                </tbody>
+                <tfoot id="perf-foot"></tfoot>
+            </table>
+        </div>
+    </section>
+
+    <!-- ==================== PAGE 2 : REGISTRE DES FACTURES ==================== -->
+    <section id="page-factures" class="page">
+
+        <div class="sync-bar">
+            <span class="sync-dot" id="syncDot"></span>
+            <span class="sync-label" id="syncText">Connexion au Google Sheet…</span>
+            <span class="sync-note">· actualisation auto toutes les 30s</span>
+            <button class="btn-refresh small" onclick="loadInvoicesGuarded()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Actualiser
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="label">Factures affichées</div>
+                <div class="value" id="statCount">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Total TTC réel</div>
+                <div class="value" id="statTotal">0 $</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Produits vendus</div>
+                <div class="value" id="statProducts">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Total remises</div>
+                <div class="value gold" id="statRemise">0 $</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="filters">
+                <div class="field">
+                    <label for="fDate">Date</label>
+                    <select id="fDate"><option value="">Toutes</option></select>
+                </div>
+                <div class="field">
+                    <label for="fEmploye">Employé</label>
+                    <select id="fEmploye"><option value="">Tous</option></select>
+                </div>
+                <div class="field">
+                    <label>Plage horaire</label>
+                    <div class="hour-range">
+                        <input type="number" id="fHeureMin" min="0" max="23" placeholder="0" style="width:70px;">
+                        <span>à</span>
+                        <input type="number" id="fHeureMax" min="0" max="23" placeholder="23" style="width:70px;">
+                        <span>h</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="fPaiement">Paiement</label>
+                    <select id="fPaiement"><option value="">Tous</option></select>
+                </div>
+                <button class="reset-btn" onclick="resetFilters()">Réinitialiser</button>
+                <span class="count-pill" id="countPill">0 résultat(s)</span>
+            </div>
+        </div>
+
+        <div class="panel" style="padding:0; overflow:hidden;">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Numéro</th>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Employé</th>
+                            <th>Caisse</th>
+                            <th style="text-align:right;">Nb produits</th>
+                            <th style="text-align:right;">Total TTC ($)</th>
+                            <th style="text-align:right;">Total réel ($)</th>
+                            <th>Paiement</th>
+                            <th style="text-align:right;">Remise</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div id="emptyState" class="empty-state" style="display:none;">Aucune facture ne correspond à ces filtres.</div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGE 3 : CLÔTURATION DE LA SEMAINE ==================== -->
+    <section id="page-cloture" class="page">
+
+        <div class="sync-bar">
+            <span class="sync-dot" id="cloture-sync-dot"></span>
+            <span class="sync-label" id="cloture-sync-label">Synchro auto activée</span>
+            <span class="sync-note">· actualisation auto toutes les 30s</span>
+            <button class="btn-refresh small" onclick="loadClotureData()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Actualiser
+            </button>
+        </div>
+
+        <div class="panel" style="margin-bottom: 24px;">
+            <h2>Semaine en cours</h2>
+            <div id="current-week-info" style="margin: 16px 0; color: var(--ink-soft); font-size: 0.9em;">
+                Chargement des données de la semaine en cours...
+            </div>
+            <button class="btn-primary" onclick="cloturerSemaine()" id="btn-cloturer" style="margin-top: 12px;">
+                ✓ Clôturer la semaine en cours
+            </button>
+            <p style="margin-top: 12px; font-size: 0.85em; color: var(--ink-soft);">
+                ⚠️ La clôturation va figer les données de la semaine en cours et les archiver dans l'historique.
+                Cette action nécessite une configuration backend (Apps Script).
+            </p>
+        </div>
+
+        <div class="panel">
+            <h2>Historique des semaines clôturées</h2>
+            <div class="table-scroll" style="margin-top: 16px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Semaine du</th>
+                            <th style="text-align:right;">Recette ($)</th>
+                            <th style="text-align:right;">Dépenses ($)</th>
+                            <th style="text-align:right;">Bénéfice Brut ($)</th>
+                            <th style="text-align:right;">Impôt ($)</th>
+                            <th style="text-align:right;">Bénéfice Net ($)</th>
+                            <th style="text-align:right;">Taux d'impôt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cloture-table-body">
+                        <tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--ink-soft);">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="cloture-empty" class="empty-state" style="display:none;">Aucune semaine clôturée pour le moment.</div>
+        </div>
+
+    </section>
+
+    <!-- ==================== PAGE 4 : HISTORIQUE DES CHARGES ==================== -->
+    <section id="page-charges" class="page">
+
+        <div class="sync-bar">
+            <span class="sync-dot" id="charges-sync-dot"></span>
+            <span class="sync-label" id="charges-sync-label">Synchro auto activée</span>
+            <span class="sync-note">· actualisation auto toutes les 30s</span>
+            <button class="btn-refresh small" onclick="loadChargesHistory()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Actualiser
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="label">Total des charges</div>
+                <div class="value" id="charges-total">0 $</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Nombre de charges</div>
+                <div class="value" id="charges-count">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Charge moyenne</div>
+                <div class="value" id="charges-moyenne">0 $</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Filtres</h2>
+            <div class="filters">
+                <div class="field">
+                    <label for="fChargeDate">Date</label>
+                    <select id="fChargeDate"><option value="">Toutes</option></select>
+                </div>
+                <div class="field">
+                    <label for="fChargeType">Type de charge</label>
+                    <select id="fChargeType"><option value="">Tous</option></select>
+                </div>
+                <div class="field">
+                    <label for="fChargeMontantMin">Montant min</label>
+                    <input type="number" id="fChargeMontantMin" placeholder="0" style="width:100px;">
+                </div>
+                <div class="field">
+                    <label for="fChargeMontantMax">Montant max</label>
+                    <input type="number" id="fChargeMontantMax" placeholder="∞" style="width:100px;">
+                </div>
+                <button class="reset-btn" onclick="resetChargesFilters()">Réinitialiser</button>
+                <span class="count-pill" id="charges-count-pill">0 résultat(s)</span>
+            </div>
+        </div>
+
+        <div class="panel" style="padding:0; overflow:hidden;">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th style="text-align:right;">Montant ($)</th>
+                            <th>Employé</th>
+                            <th>Commentaire</th>
+                        </tr>
+                    </thead>
+                    <tbody id="charges-table-body">
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color: var(--ink-soft);">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="charges-empty" class="empty-state" style="display:none;">Aucune charge ne correspond à ces filtres.</div>
+        </div>
+
+    </section>
+
+    <script>
+        // ==================== Navigation entre pages ====================
+        function showPage(name) {
+            document.getElementById('page-dashboard').classList.toggle('active', name === 'dashboard');
+            document.getElementById('page-factures').classList.toggle('active', name === 'factures');
+            document.getElementById('page-cloture').classList.toggle('active', name === 'cloture');
+            document.getElementById('page-charges').classList.toggle('active', name === 'charges');
+            document.getElementById('tab-btn-dashboard').classList.toggle('active', name === 'dashboard');
+            document.getElementById('tab-btn-factures').classList.toggle('active', name === 'factures');
+            document.getElementById('tab-btn-cloture').classList.toggle('active', name === 'cloture');
+            document.getElementById('tab-btn-charges').classList.toggle('active', name === 'charges');
+            
+            // Charger les données de clôture quand on ouvre cet onglet
+            if (name === 'cloture') {
+                loadClotureData();
+            }
+            // Charger l'historique des charges quand on ouvre cet onglet
+            if (name === 'charges') {
+                loadChargesHistory();
+            }
+        }
+
+        // ==================== Capture globale des erreurs ====================
+        // Si un script plante avant d'arriver au clic du bouton, on le voit désormais
+        // au lieu d'un silence total.
+        window.addEventListener('error', function (event) {
+            showFatalError('Erreur JavaScript : ' + event.message);
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            showFatalError('Erreur async : ' + (event.reason && event.reason.message ? event.reason.message : event.reason));
+        });
+
+        function showFatalError(msg) {
+            const banner = document.getElementById('fatal-error-banner');
+            banner.style.display = 'block';
+            banner.innerText = '⚠️ ' + msg;
+            console.error(msg);
+        }
+
+        /* =========================================================================
+           PARTIE 1 : DASHBOARD (comptabilité, trésorerie, performance employés)
+           ========================================================================= */
+
+
+        let chartInstance = null;
+        let chartJourInstance = null;
+        const DASHBOARD_POLL_MS = 15000; // Intervalle de synchronisation automatique (15 secondes)
+        let dashboardPollInterval = null;
+
+        // Plafond de salaire par employé / semaine
+        const SALAIRE_MAX = 18000;
+
+        // ==================== Système d'impôt progressif par tranches ====================
+        const TRANCHES_IMPOT = [
+            { min: 0,      max: 15000,     taux: 0.15 },
+            { min: 15000,  max: 35000,     taux: 0.20 },
+            { min: 35000,  max: 65000,     taux: 0.25 },
+            { min: 65000,  max: 105000,    taux: 0.30 },
+            { min: 105000, max: Infinity,  taux: 0.40 }
+        ];
+
+        function calculerImpotProgressif(beneficeBrut) {
+            if (!beneficeBrut || beneficeBrut <= 0) return 0;
+            let impot = 0;
+            for (const tranche of TRANCHES_IMPOT) {
+                if (beneficeBrut > tranche.min) {
+                    const montantDansTranche = Math.min(beneficeBrut, tranche.max) - tranche.min;
+                    impot += montantDansTranche * tranche.taux;
+                } else {
+                    break;
+                }
+            }
+            return impot;
+        }
+
+        function renderDetailImpot(beneficeBrut) {
+            const brut = beneficeBrut || 0;
+            let html = `
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">Tranche</th>
+                        <th>Taux</th>
+                        <th>Impôt sur la tranche</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            TRANCHES_IMPOT.forEach(tranche => {
+                const labelMax = tranche.max === Infinity ? 'et plus' : money(tranche.max);
+                const labelTranche = tranche.max === Infinity
+                    ? `${money(tranche.min)} et plus`
+                    : `${money(tranche.min)} — ${labelMax}`;
+
+                const montantDansTranche = brut > tranche.min
+                    ? Math.min(brut, tranche.max) - tranche.min
+                    : 0;
+                const impotTranche = montantDansTranche * tranche.taux;
+
+                html += `
+                    <tr>
+                        <td style="text-align:left;">${labelTranche}</td>
+                        <td>${Math.round(tranche.taux * 100)} %</td>
+                        <td>${money(impotTranche)}</td>
+                    </tr>`;
+            });
+
+            html += '</tbody>';
+            document.getElementById('impot-details').innerHTML = html;
+        }
+
+        function gvizUrl(sheet, opts) {
+            throw new Error('Google Sheets a été remplacé par Supabase.');
+        }
+
+        function parseGviz(text) {
+            return JSON.parse(text.substring(47, text.length - 2)).table.rows;
+        }
+
+        function parseGvizDate(v) {
+            if (v === null || v === undefined) return null;
+            if (typeof v === 'string' && v.indexOf('Date(') === 0) {
+                const parts = v.substring(5, v.length - 1).split(',').map(Number);
+                return new Date(parts[0], parts[1], parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0);
+            }
+            const d = new Date(v);
+            return isNaN(d) ? null : d;
+        }
+
+        function parseDateFrancaise(v) {
+            if (typeof v === 'string' && v.indexOf('/') !== -1) {
+                const p = v.split('/').map(Number);
+                if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]);
+            }
+            return parseGvizDate(v);
+        }
+
+        function money(n) {
+            return Math.round(n || 0).toLocaleString('fr-FR') + ' $';
+        }
+
+        function getConfigValue(configRows, cle) {
+            for (let i = 1; i < configRows.length; i++) {
+                const row = configRows[i];
+                if (row.c[0] && row.c[0].v === cle) return row.c[1] ? row.c[1].v : null;
+            }
+            return null;
+        }
+
+        function getEmployesValides(employesRows) {
+            const noms = new Set();
+            for (let i = 0; i < employesRows.length; i++) {
+                const row = employesRows[i];
+                if (row.c[0] && row.c[0].v) noms.add(String(row.c[0].v).trim());
+            }
+            return noms;
+        }
+
+        function getPanierMoyenParEmploye(employesRows) {
+            const map = {};
+            for (let i = 0; i < employesRows.length; i++) {
+                const row = employesRows[i];
+                if (!row.c[0] || !row.c[0].v) continue;
+                const nom = String(row.c[0].v).trim();
+                map[nom] = parseFloat(row.c[4]?.v) || 0;
+            }
+            return map;
+        }
+
+        function handleManualRefresh() {
+            const btn = document.getElementById('btn-refresh');
+            btn.classList.add('spinning');
+            init().finally(() => setTimeout(() => btn.classList.remove('spinning'), 400));
+        }
+
+        async function init() {
+            try {
+                const [tVentes, tCharges, tConfig, tHist, tPerf, tEmployes, tTreso, tProduits, tFactures] = await Promise.all([
+                    fetch(gvizUrl('VENTES_BRUTES')).then(r => r.text()),
+                    fetch(gvizUrl('💰 Charges')).then(r => r.text()),
+                    fetch(gvizUrl('CONFIG')).then(r => r.text()),
+                    fetch(gvizUrl('HISTORIQUE_SEMAINES')).then(r => r.text()),
+                    fetch(gvizUrl('PERFORMANCE_EMPLOYES')).then(r => r.text()),
+                    fetch(gvizUrl('👥 Employés')).then(r => r.text()),
+                    fetch(gvizUrl('💰 Charges', { headers: 0 })).then(r => r.text()),
+                    fetch(gvizUrl('📦 Produits')).then(r => r.text()),
+                    fetch(gvizUrl('🧾 Factures')).then(r => r.text())
+                ]);
+
+                const ventesRows = parseGviz(tVentes);
+                const chargesRows = parseGviz(tCharges);
+                const configRows = parseGviz(tConfig);
+                const histRows = parseGviz(tHist);
+                const perfRows = parseGviz(tPerf);
+                const employesRows = parseGviz(tEmployes);
+                const tresoRows = parseGviz(tTreso);
+                const produitsRows = parseGviz(tProduits);
+                let facturesRows = [];
+                try { facturesRows = parseGviz(tFactures); } catch (e) { console.warn("Onglet 🧾 Factures introuvable ou vide — indicateur fidélité désactivé.", e); }
+                const employesValides = getEmployesValides(employesRows);
+                const panierMoyenParEmploye = getPanierMoyenParEmploye(employesRows);
+
+                const derniereClotureRaw = getConfigValue(configRows, 'DERNIERE_CLOTURE');
+                const derniereCloture = derniereClotureRaw ? parseGvizDate(derniereClotureRaw) : new Date(2000, 0, 1);
+
+                let recetteSemaine = 0;
+                const perfSemaine = {};
+                for (let i = 0; i < ventesRows.length; i++) {
+                    const row = ventesRows[i];
+                    if (!row.c[0] || !row.c[0].v) continue;
+                    const date = parseGvizDate(row.c[0].v);
+                    if (!date || date <= derniereCloture) continue;
+                    const total = parseFloat(row.c[9]?.v) || 0;
+                    const salarie = row.c[3]?.v || "Non renseigné";
+                    recetteSemaine += total;
+                    if (!employesValides.has(String(salarie).trim())) continue;
+                    if (!perfSemaine[salarie]) perfSemaine[salarie] = { nb: 0, ca: 0 };
+                    perfSemaine[salarie].nb += 1;
+                    perfSemaine[salarie].ca += total;
+                }
+
+                // Usage de la carte fidélité par employé, calculé à partir de
+                // 🧾 Factures (une ligne par vente, colonne M = téléphone du client
+                // fidélité si utilisé, vide sinon). C'est ce compte qui donne le
+                // nombre de FACTURES (pas de lignes produit), contrairement à
+                // perfSemaine['nb'] plus haut qui compte des lignes VENTES_BRUTES.
+                const fideliteParEmploye = {};
+                for (let i = 0; i < facturesRows.length; i++) {
+                    const row = facturesRows[i];
+                    if (!row.c[0] || !row.c[0].v) continue; // pas de numéro de facture
+                    const date = parseGvizDate(row.c[1]?.v);
+                    if (!date || date <= derniereCloture) continue;
+                    const salarie = String(row.c[3]?.v || "Non renseigné").trim();
+                    if (!employesValides.has(salarie)) continue;
+                    const clientTel = (row.c[12]?.v || '').toString().trim();
+                    if (!fideliteParEmploye[salarie]) fideliteParEmploye[salarie] = { total: 0, avecCarte: 0 };
+                    fideliteParEmploye[salarie].total += 1;
+                    if (clientTel) fideliteParEmploye[salarie].avecCarte += 1;
+                }
+
+                let depensesSemaine = 0;
+                for (let i = 0; i < chargesRows.length; i++) {
+                    const row = chargesRows[i];
+                    if (!row.c[0] || !row.c[0].v) continue;
+                    const date = parseDateFrancaise(row.c[0].v);
+                    if (!date || date <= derniereCloture) continue;
+                    depensesSemaine += parseFloat(row.c[3]?.v) || 0;
+                }
+
+                const beneficeBrut = recetteSemaine - depensesSemaine;
+                const impot = calculerImpotProgressif(beneficeBrut);
+                const beneficeNet = beneficeBrut - impot;
+                const tauxEffectif = beneficeBrut > 0 ? (impot / beneficeBrut * 100) : 0;
+
+                document.getElementById('stat-recette').innerText = money(recetteSemaine);
+                document.getElementById('stat-depenses').innerText = money(depensesSemaine);
+                document.getElementById('stat-brut').innerText = money(beneficeBrut);
+                document.getElementById('stat-impot').innerText = money(impot) + ` (${Math.round(tauxEffectif)}%)`;
+                document.getElementById('stat-net').innerText = money(beneficeNet);
+
+                renderDetailImpot(beneficeBrut);
+                renderSoldeBancaire(tresoRows, recetteSemaine, depensesSemaine);
+                renderValeurStock(produitsRows);
+                renderPerformance(perfSemaine, panierMoyenParEmploye, fideliteParEmploye);
+                renderChart(histRows, recetteSemaine);
+                renderChartJournalier(ventesRows, chargesRows, derniereCloture);
+
+                document.getElementById('fatal-error-banner').style.display = 'none';
+
+                startAutoSync();
+            } catch (e) {
+                showFatalError('init() a échoué : ' + e.message + ' — vérifie que les onglets CONFIG, VENTES_BRUTES, 💰 Charges, HISTORIQUE_SEMAINES, PERFORMANCE_EMPLOYES et 👥 Employés existent bien et sont accessibles publiquement en lecture.');
+            }
+        }
+
+        function renderSoldeBancaire(tresoRows, recetteSemaine, depensesSemaine) {
+            const COL_H = 7;
+            const ligne2 = tresoRows[1];
+
+            const soldeDeclareBrut = (ligne2 && ligne2.c[COL_H] && ligne2.c[COL_H].v !== null && ligne2.c[COL_H].v !== '')
+                ? ligne2.c[COL_H].v : null;
+            const soldeDeclare = soldeDeclareBrut !== null ? (parseFloat(soldeDeclareBrut) || 0) : null;
+
+            const soldeEl = document.getElementById('stat-solde-bancaire');
+
+            if (soldeDeclare === null) {
+                soldeEl.innerText = 'Non renseigné';
+                return;
+            }
+
+            const soldeActuel = soldeDeclare + recetteSemaine - depensesSemaine;
+            soldeEl.innerText = money(soldeActuel);
+        }
+
+        function renderValeurStock(produitsRows) {
+            let valeurStock = 0;
+            for (let i = 0; i < produitsRows.length; i++) {
+                const row = produitsRows[i];
+                if (!row.c[0] || !row.c[0].v) continue;
+                const coutGrossiste = parseFloat(row.c[4]?.v) || 0;
+                const stock = parseFloat(row.c[5]?.v) || 0;
+                valeurStock += coutGrossiste * stock;
+            }
+            document.getElementById('stat-valeur-stock').innerText = money(valeurStock);
+        }
+
+        function startAutoSync() {
+            if (dashboardPollInterval) clearInterval(dashboardPollInterval);
+            dashboardPollInterval = setInterval(refreshDashboardOnly, DASHBOARD_POLL_MS);
+        }
+
+        async function refreshDashboardOnly() {
+            const syncLabel = document.getElementById('sync-label');
+            syncLabel.innerText = "Synchronisation...";
+            syncLabel.classList.add('syncing');
+            try {
+                await init();
+                syncLabel.innerText = "Synchronisé à " + new Date().toLocaleTimeString('fr-FR');
+                syncLabel.classList.remove('syncing');
+            } catch (e) {
+                console.error("Erreur synchro auto :", e);
+                syncLabel.innerText = "⚠️ Échec de synchro";
+                syncLabel.classList.remove('syncing');
+            }
+        }
+
+        function renderPerformance(perfSemaine, panierMoyenParEmploye, fideliteParEmploye) {
+            const body = document.getElementById('perf-body');
+            const foot = document.getElementById('perf-foot');
+            body.innerHTML = '';
+            foot.innerHTML = '';
+
+            const noms = Object.keys(perfSemaine).sort((a, b) => perfSemaine[b].ca - perfSemaine[a].ca);
+
+            if (noms.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="empty-state">Pas encore de données de vente.</td></tr>';
+                return;
+            }
+
+            let tNbS = 0, tCaS = 0, tSalS = 0, tFacturesS = 0, tAvecCarteS = 0;
+
+            noms.forEach(nom => {
+                const semaine = perfSemaine[nom];
+                const salaireBrut = semaine.ca * 0.13;
+                const salaire = Math.min(salaireBrut, SALAIRE_MAX);
+                const estPlafonne = salaireBrut > SALAIRE_MAX;
+                const panierMoyenEmploye = (panierMoyenParEmploye && panierMoyenParEmploye[nom] !== undefined)
+                    ? panierMoyenParEmploye[nom] : 0;
+
+                tNbS += semaine.nb;
+                tCaS += semaine.ca;
+                tSalS += salaire;
+
+                // Ex : "4 avec carte fidélité"
+                const fid = (fideliteParEmploye && fideliteParEmploye[nom]) || { total: 0, avecCarte: 0 };
+                tFacturesS += fid.total;
+                tAvecCarteS += fid.avecCarte;
+                const fidCellule = fid.total > 0
+                    ? `<span class="fid-count">${fid.avecCarte} avec carte fidélité</span>
+                       <span class="fid-note">${fid.total} facture${fid.total > 1 ? 's' : ''} au total</span>`
+                    : `<span class="fid-note">Aucune facture</span>`;
+
+                body.innerHTML += `
+                    <tr>
+                        <td><span class="badge">${nom}</span></td>
+                        <td class="num">${semaine.nb}</td>
+                        <td class="num">${money(semaine.ca)}</td>
+                        <td class="num">${money(panierMoyenEmploye)}</td>
+                        <td class="num">${fidCellule}</td>
+                        <td class="num"><b>${money(salaire)}</b>${estPlafonne ? ' <span title="Plafonné à 18 000 $" style="color:var(--c-orange);">🔒</span>' : ''}</td>
+                    </tr>`;
+            });
+
+            const panierMoyenTotal = tNbS > 0 ? tCaS / tNbS : 0;
+
+            foot.innerHTML = `
+                <tr>
+                    <td>Total</td>
+                    <td class="num">${tNbS}</td>
+                    <td class="num">${money(tCaS)}</td>
+                    <td class="num">${money(panierMoyenTotal)}</td>
+                    <td class="num">${tAvecCarteS} avec carte fidélité<span class="fid-note">${tFacturesS} facture${tFacturesS > 1 ? 's' : ''} au total</span></td>
+                    <td class="num">${money(tSalS)}</td>
+                </tr>`;
+        }
+
+        function joursEntre(dateDebut, dateFin) {
+            const jours = [];
+            let d = new Date(dateDebut);
+            d.setHours(0, 0, 0, 0);
+            const fin = new Date(dateFin);
+            fin.setHours(0, 0, 0, 0);
+            while (d <= fin) {
+                jours.push(new Date(d));
+                d.setDate(d.getDate() + 1);
+            }
+            return jours;
+        }
+
+        function cleJour(d) {
+            return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+        }
+
+        const DATE_OUVERTURE = new Date(2026, 6, 14); // 14 juillet 2026
+
+        function renderChartJournalier(ventesRows, chargesRows, derniereCloture) {
+            const aujourdHui = new Date();
+            const lendemainCloture = new Date(derniereCloture);
+            lendemainCloture.setDate(lendemainCloture.getDate() + 1);
+            lendemainCloture.setHours(0, 0, 0, 0);
+
+            const debut = lendemainCloture > DATE_OUVERTURE ? lendemainCloture : new Date(DATE_OUVERTURE);
+            debut.setHours(0, 0, 0, 0);
+
+            const jours = debut <= aujourdHui ? joursEntre(debut, aujourdHui) : joursEntre(aujourdHui, aujourdHui);
+
+            const recettesParJour = {};
+            const depensesParJour = {};
+            jours.forEach(j => { recettesParJour[cleJour(j)] = 0; depensesParJour[cleJour(j)] = 0; });
+
+            ventesRows.forEach(row => {
+                if (!row.c[0] || !row.c[0].v) return;
+                const date = parseGvizDate(row.c[0].v);
+                if (!date || date <= derniereCloture) return;
+                const cle = cleJour(date);
+                if (recettesParJour[cle] === undefined) return;
+                recettesParJour[cle] += parseFloat(row.c[9]?.v) || 0;
+            });
+
+            chargesRows.forEach(row => {
+                if (!row.c[0] || !row.c[0].v) return;
+                const date = parseDateFrancaise(row.c[0].v);
+                if (!date || date <= derniereCloture) return;
+                const cle = cleJour(date);
+                if (depensesParJour[cle] === undefined) return;
+                depensesParJour[cle] += parseFloat(row.c[3]?.v) || 0;
+            });
+
+            const labels = jours.map(j => j.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }));
+            const recettes = jours.map(j => Math.round(recettesParJour[cleJour(j)]));
+            const depenses = jours.map(j => Math.round(depensesParJour[cleJour(j)]));
+
+            const ctx = document.getElementById('chart-jour').getContext('2d');
+            if (chartJourInstance) chartJourInstance.destroy();
+
+            const existingEmpty = document.getElementById('chart-jour-empty');
+            if (existingEmpty) existingEmpty.remove();
+
+            if (jours.length <= 1) {
+                document.getElementById('chart-jour').parentElement.insertAdjacentHTML('beforeend',
+                    '<p class="empty-state" id="chart-jour-empty">Pas encore assez de jours depuis la dernière clôture pour afficher une courbe.</p>');
+            }
+
+            chartJourInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Recette',
+                            data: recettes,
+                            borderColor: '#1F8A4C',
+                            backgroundColor: 'rgba(31, 138, 76, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#1F8A4C'
+                        },
+                        {
+                            label: 'Dépenses',
+                            data: depenses,
+                            borderColor: '#C00100',
+                            backgroundColor: 'rgba(192, 1, 0, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#C00100'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: 'Inter' } } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: (value) => Math.round(value).toLocaleString('fr-FR') + ' $', font: { family: 'IBM Plex Mono' } }
+                        },
+                        x: { ticks: { font: { family: 'Inter' } } }
+                    }
+                }
+            });
+        }
+
+        function renderChart(histRows, recetteSemaineEnCours) {
+            const labels = [];
+            const recettes = [];
+            const benefices = [];
+
+            for (let i = 0; i < histRows.length; i++) {
+                const row = histRows[i];
+                if (!row.c[0] || !row.c[0].v) continue;
+                const d = parseGvizDate(row.c[0].v);
+                labels.push(d ? d.toLocaleDateString('fr-FR') : row.c[0].v);
+                recettes.push(parseFloat(row.c[3]?.v) || 0);
+                benefices.push(parseFloat(row.c[8]?.v) || 0);
+            }
+
+            labels.push("En cours");
+            recettes.push(recetteSemaineEnCours);
+            benefices.push(null);
+
+            const dernierIndex = recettes.length - 1;
+            const pointColorsRecette = recettes.map((_, i) => i === dernierIndex ? '#B8860B' : '#262C68');
+            const pointRadiusRecette = recettes.map((_, i) => i === dernierIndex ? 7 : 4);
+            const pointStyleRecette = recettes.map((_, i) => i === dernierIndex ? 'rectRot' : 'circle');
+
+            const ctx = document.getElementById('chart-ca').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            const existingEmpty = document.getElementById('chart-empty');
+            if (existingEmpty) existingEmpty.remove();
+
+            if (labels.length === 1) {
+                document.getElementById('chart-ca').parentElement.insertAdjacentHTML('beforeend',
+                    '<p class="empty-state" id="chart-empty">Pas encore de semaine clôturée — l\'historique se remplira après ta première clôture.</p>');
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Recette',
+                            data: recettes,
+                            borderColor: '#262C68',
+                            backgroundColor: 'rgba(38, 44, 104, 0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: pointRadiusRecette,
+                            pointBackgroundColor: pointColorsRecette,
+                            pointStyle: pointStyleRecette,
+                            spanGaps: true,
+                            segment: {
+                                borderDash: ctx => ctx.p1DataIndex === dernierIndex ? [6, 4] : undefined
+                            }
+                        },
+                        {
+                            label: 'Bénéfice Net',
+                            data: benefices,
+                            borderColor: '#C00100',
+                            backgroundColor: 'rgba(192, 1, 0, 0.08)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#C00100',
+                            spanGaps: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: 'Inter' } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const suffix = context.dataIndex === dernierIndex ? ' (semaine en cours)' : '';
+                                    return context.dataset.label + ': ' + money(context.parsed.y) + suffix;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: (value) => Math.round(value).toLocaleString('fr-FR') + ' $', font: { family: 'IBM Plex Mono' } }
+                        },
+                        x: { ticks: { font: { family: 'Inter' } } }
+                    }
+                }
+            });
+
+            const details = document.getElementById('chart-ca-details');
+            let detailsHtml = `
+                <thead>
+                    <tr>
+                        <th>Semaine</th>
+                        <th>Recette</th>
+                        <th>Bénéfice Net</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            labels.forEach((label, i) => {
+                const estEnCours = i === dernierIndex;
+                const beneficeAff = benefices[i] === null ? '–' : money(benefices[i]);
+                detailsHtml += `
+                    <tr class="${estEnCours ? 'en-cours' : ''}">
+                        <td>${label}${estEnCours ? ' 🟠' : ''}</td>
+                        <td>${money(recettes[i])}</td>
+                        <td>${beneficeAff}</td>
+                    </tr>`;
+            });
+            detailsHtml += '</tbody>';
+            details.innerHTML = detailsHtml;
+        }
+
+        /* =========================================================================
+           PARTIE 2 : REGISTRE DES FACTURES
+           ========================================================================= */
+
+        const HEADER_ROWS = 0;
+
+        let invoices = [];
+
+        function parseCSV(text){
+            const rows = [];
+            let row = [], field = '', inQuotes = false;
+            for(let i=0;i<text.length;i++){
+                const c = text[i], next = text[i+1];
+                if(inQuotes){
+                    if(c === '"' && next === '"'){ field += '"'; i++; }
+                    else if(c === '"'){ inQuotes = false; }
+                    else field += c;
+                } else {
+                    if(c === '"') inQuotes = true;
+                    else if(c === ','){ row.push(field); field=''; }
+                    else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+                    else if(c === '\r'){ /* ignore */ }
+                    else field += c;
+                }
+            }
+            if(field.length || row.length){ row.push(field); rows.push(row); }
+            return rows;
+        }
+
+        function toISODate(raw){
+            if(!raw) return '';
+            raw = raw.trim();
+            if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+            const parts = raw.split(/[\/\-]/);
+            if(parts.length >= 3){
+                let [m,d,y] = parts;
+                if(y.length !== 4){ [y,m,d] = parts; }
+                m = m.padStart(2,'0'); d = d.padStart(2,'0');
+                return `${y}-${m}-${d}`;
+            }
+            return raw;
+        }
+
+        function toHHMMSS(raw){
+            if(!raw) return '00:00:00';
+            raw = raw.trim();
+            const m = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+            if(!m) return raw;
+            const h = m[1].padStart(2,'0'), mi = m[2], se = (m[3]||'00');
+            return `${h}:${mi}:${se}`;
+        }
+
+        function numOf(raw){
+            if(raw === undefined || raw === null) return 0;
+            const n = parseFloat(String(raw).replace(/[^0-9.\-]/g,''));
+            return isNaN(n) ? 0 : n;
+        }
+
+        async function loadInvoices(){
+            const dot = document.getElementById('syncDot');
+            const text = document.getElementById('syncText');
+            dot.classList.remove('warn', 'error');
+            text.textContent = 'Connexion au Google Sheet…';
+
+            try{
+                const res = await Promise.reject(new Error('Source historique désactivée'));
+                if(!res.ok) throw new Error('HTTP '+res.status);
+                const csvText = await res.text();
+                const rows = parseCSV(csvText);
+
+                const INVOICE_PATTERN = /^[A-Z]{2,5}-\d{4}-\d{4,8}$/i;
+
+                invoices = rows
+                    .filter(r => r[0] && INVOICE_PATTERN.test(r[0].trim()))
+                    .map(r => ({
+                        numero: (r[0]||'').trim(),
+                        date: toISODate(r[1]||''),
+                        heure: toHHMMSS(r[2]||''),
+                        employe: (r[3]||'').trim(),
+                        caisse: (r[4]||'').trim(),
+                        nb: numOf(r[5]),
+                        ttc: numOf(r[6]),
+                        reel: numOf(r[8]),
+                        paiement: (r[9]||'').trim(),
+                        remise: numOf(r[10])
+                    }));
+
+                text.textContent = `Connecté — ${invoices.length} facture(s) reconnue(s) sur ${rows.length} ligne(s) au total dans le Sheet · ${new Date().toLocaleTimeString('fr-CA')}`;
+            } catch(err){
+                dot.classList.add('error');
+                text.textContent = "Impossible de lire le Google Sheet. Vérifiez qu'il est partagé en \"Toute personne disposant du lien peut consulter\" et qu'aucun filtre n'est actif sur la feuille. (" + err.message + ")";
+            }
+
+            resetFilterOptions();
+            populateFilters();
+            render();
+        }
+
+        function resetFilterOptions(){
+            document.getElementById('fDate').innerHTML = '<option value="">Toutes</option>';
+            document.getElementById('fEmploye').innerHTML = '<option value="">Tous</option>';
+            document.getElementById('fPaiement').innerHTML = '<option value="">Tous</option>';
+        }
+
+        const fmt = n => n.toLocaleString('fr-CA', {minimumFractionDigits:0, maximumFractionDigits:2});
+        const fmtDate = iso => {
+            const [y,m,d] = iso.split('-');
+            return `${d}/${m}/${y}`;
+        };
+
+        function populateFilters(){
+            const dates = [...new Set(invoices.map(i=>i.date))].sort();
+            const employes = [...new Set(invoices.map(i=>i.employe))].sort();
+            const paiements = [...new Set(invoices.map(i=>i.paiement))].sort();
+
+            const fDate = document.getElementById('fDate');
+            dates.forEach(d=>{
+                const opt = document.createElement('option');
+                opt.value = d; opt.textContent = fmtDate(d);
+                fDate.appendChild(opt);
+            });
+
+            const fEmploye = document.getElementById('fEmploye');
+            employes.forEach(e=>{
+                const opt = document.createElement('option');
+                opt.value = e; opt.textContent = e;
+                fEmploye.appendChild(opt);
+            });
+
+            const fPaiement = document.getElementById('fPaiement');
+            paiements.forEach(p=>{
+                const opt = document.createElement('option');
+                opt.value = p; opt.textContent = p;
+                fPaiement.appendChild(opt);
+            });
+        }
+
+        function getFiltered(){
+            const date = document.getElementById('fDate').value;
+            const employe = document.getElementById('fEmploye').value;
+            const paiement = document.getElementById('fPaiement').value;
+            const hMinRaw = document.getElementById('fHeureMin').value;
+            const hMaxRaw = document.getElementById('fHeureMax').value;
+            const hMin = hMinRaw === '' ? 0 : parseInt(hMinRaw,10);
+            const hMax = hMaxRaw === '' ? 23 : parseInt(hMaxRaw,10);
+
+            return invoices.filter(inv=>{
+                if(date && inv.date !== date) return false;
+                if(employe && inv.employe !== employe) return false;
+                if(paiement && inv.paiement !== paiement) return false;
+                const h = parseInt(inv.heure.split(':')[0],10);
+                if(h < hMin || h > hMax) return false;
+                return true;
+            });
+        }
+
+        function render(){
+            const rows = getFiltered();
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            tbody.innerHTML = '';
+
+            if(rows.length === 0){
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                rows.sort((a,b)=> (a.date+a.heure).localeCompare(b.date+b.heure));
+                rows.forEach(inv=>{
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${inv.numero}</td>
+                        <td>${fmtDate(inv.date)}</td>
+                        <td>${inv.heure}</td>
+                        <td class="employe">${inv.employe}</td>
+                        <td>${inv.caisse}</td>
+                        <td class="num">${inv.nb}</td>
+                        <td class="num">${fmt(inv.ttc)} $</td>
+                        <td class="num">${fmt(inv.reel)} $</td>
+                        <td><span class="tag">${inv.paiement}</span></td>
+                        <td class="num ${inv.remise>0 ? 'remise' : 'remise zero'}">${inv.remise>0 ? fmt(inv.remise)+' $' : '—'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const total = rows.reduce((s,i)=>s+i.reel,0);
+            const products = rows.reduce((s,i)=>s+i.nb,0);
+            const remise = rows.reduce((s,i)=>s+i.remise,0);
+
+            document.getElementById('statCount').textContent = rows.length;
+            document.getElementById('statTotal').textContent = fmt(total)+' $';
+            document.getElementById('statProducts').textContent = products;
+            document.getElementById('statRemise').textContent = fmt(remise)+' $';
+            document.getElementById('countPill').textContent = rows.length+' résultat(s)';
+        }
+
+        function resetFilters(){
+            document.getElementById('fDate').value = '';
+            document.getElementById('fEmploye').value = '';
+            document.getElementById('fPaiement').value = '';
+            document.getElementById('fHeureMin').value = '';
+            document.getElementById('fHeureMax').value = '';
+            render();
+        }
+
+        ['fDate','fEmploye','fPaiement','fHeureMin','fHeureMax'].forEach(id=>{
+            document.getElementById(id).addEventListener('input', render);
+            document.getElementById(id).addEventListener('change', render);
+        });
+
+        const AUTO_REFRESH_MS = 30000;
+        let autoRefreshTimer = null;
+        let isLoading = false;
+
+        async function loadInvoicesGuarded(){
+            if(isLoading) return;
+            isLoading = true;
+            await loadInvoices();
+            isLoading = false;
+        }
+
+        /* =========================================================================
+           PAGE CLÔTURATION : Affiche l'historique des semaines clôturées et permet
+           de clôturer la semaine en cours
+           ========================================================================= */
+        
+        let currentWeekData = null; // Stocke les données de la semaine en cours
+
+        async function loadClotureData() {
+            const dot = document.getElementById('cloture-sync-dot');
+            const label = document.getElementById('cloture-sync-label');
+            
+            try {
+                dot.classList.remove('warn', 'error');
+                label.textContent = 'Chargement...';
+                
+                // Récupérer les données nécessaires
+                const [configRes, histRes, ventesRes, chargesRes] = await Promise.all([
+                    fetch(gvizUrl('CONFIG')).then(r => r.text()),
+                    fetch(gvizUrl('HISTORIQUE_SEMAINES')).then(r => r.text()),
+                    fetch(gvizUrl('VENTES_BRUTES')).then(r => r.text()),
+                    fetch(gvizUrl('💰 Charges')).then(r => r.text())
+                ]);
+
+                const configRows = JSON.parse(configRes.substring(47, configRes.length - 2)).table.rows;
+                const histRows = JSON.parse(histRes.substring(47, histRes.length - 2)).table.rows;
+                const ventesRows = JSON.parse(ventesRes.substring(47, ventesRes.length - 2)).table.rows;
+                const chargesRows = JSON.parse(chargesRes.substring(47, chargesRes.length - 2)).table.rows;
+
+                // Récupérer la date de dernière clôture
+                const derniereClotureRaw = getConfigValue(configRows, 'DERNIERE_CLOTURE');
+                const derniereCloture = derniereClotureRaw ? parseGvizDate(derniereClotureRaw) : new Date(2000, 0, 1);
+
+                // Calculer les données de la semaine en cours
+                let recetteSemaine = 0;
+                let depensesSemaine = 0;
+
+                ventesRows.forEach(row => {
+                    if (!row.c[1] || !row.c[1].v) return;
+                    const date = parseGvizDate(row.c[1].v);
+                    if (!date || date <= derniereCloture) return;
+                    const total = parseFloat(row.c[5]?.v) || 0;
+                    recetteSemaine += total;
+                });
+
+                chargesRows.forEach(row => {
+                    if (!row.c[0] || !row.c[0].v) return;
+                    const date = parseGvizDate(row.c[0].v);
+                    if (!date || date <= derniereCloture) return;
+                    depensesSemaine += parseFloat(row.c[3]?.v) || 0;
+                });
+
+                const beneficeBrut = recetteSemaine - depensesSemaine;
+                const impot = calculerImpotProgressif(beneficeBrut);
+                const beneficeNet = beneficeBrut - impot;
+
+                // Stocker pour la clôture
+                currentWeekData = {
+                    recette: recetteSemaine,
+                    depenses: depensesSemaine,
+                    beneficeBrut: beneficeBrut,
+                    impot: impot,
+                    beneficeNet: beneficeNet,
+                    derniereCloture: derniereCloture
+                };
+
+                // Afficher les infos de la semaine en cours
+                const lendemainCloture = new Date(derniereCloture);
+                lendemainCloture.setDate(lendemainCloture.getDate() + 1);
+                
+                document.getElementById('current-week-info').innerHTML = `
+                    <strong>Période :</strong> du ${lendemainCloture.toLocaleDateString('fr-FR')} à aujourd'hui<br>
+                    <strong>Recette :</strong> ${money(recetteSemaine)}<br>
+                    <strong>Dépenses :</strong> ${money(depensesSemaine)}<br>
+                    <strong>Bénéfice Brut :</strong> ${money(beneficeBrut)}<br>
+                    <strong>Impôt estimé :</strong> ${money(impot)}<br>
+                    <strong>Bénéfice Net :</strong> <span style="color: ${beneficeNet >= 0 ? 'var(--green)' : 'var(--red-600)'}; font-weight: 600;">${money(beneficeNet)}</span>
+                `;
+
+                // Afficher l'historique
+                renderClotureHistory(histRows);
+
+                label.textContent = 'Données à jour';
+                
+            } catch (e) {
+                console.error('Erreur loadClotureData:', e);
+                dot.classList.add('error');
+                label.textContent = 'Erreur de chargement';
+                label.classList.add('syncing');
+                document.getElementById('current-week-info').innerHTML = '<span style="color: var(--red-600);">Erreur : ' + e.message + '</span>';
+            }
+        }
+
+        function renderClotureHistory(histRows) {
+            const tbody = document.getElementById('cloture-table-body');
+            const empty = document.getElementById('cloture-empty');
+            
+            if (!histRows || histRows.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            let html = '';
+
+            // Trier par date décroissante (plus récent en premier)
+            const sorted = histRows.slice().reverse();
+
+            sorted.forEach(row => {
+                if (!row.c[0] || !row.c[0].v) return;
+                
+                const date = parseGvizDate(row.c[0].v);
+                const recette = parseFloat(row.c[3]?.v) || 0;
+                const depenses = parseFloat(row.c[4]?.v) || 0;
+                const brut = parseFloat(row.c[5]?.v) || 0;
+                const impot = parseFloat(row.c[7]?.v) || 0;
+                const net = parseFloat(row.c[8]?.v) || 0;
+                const tauxImpot = brut > 0 ? (impot / brut * 100) : 0;
+
+                html += `
+                    <tr>
+                        <td>${date ? date.toLocaleDateString('fr-FR') : '—'}</td>
+                        <td style="text-align:right;">${money(recette)}</td>
+                        <td style="text-align:right;">${money(depenses)}</td>
+                        <td style="text-align:right;">${money(brut)}</td>
+                        <td style="text-align:right;">${money(impot)}</td>
+                        <td style="text-align:right; font-weight:600; color:${net >= 0 ? 'var(--green)' : 'var(--red-600)'}">${money(net)}</td>
+                        <td style="text-align:right;">${tauxImpot.toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:40px; color: var(--ink-soft);">Aucune donnée</td></tr>';
+        }
+
+        async function cloturerSemaine() {
+            if (!currentWeekData) {
+                alert('⚠️ Veuillez d\'abord charger les données de la semaine en cours.');
+                return;
+            }
+
+            if (!confirm(`Voulez-vous vraiment clôturer la semaine en cours ?\n\nCette action va :\n• Archiver les données actuelles (Recette: ${money(currentWeekData.recette)}, Bénéfice Net: ${money(currentWeekData.beneficeNet)})\n• Mettre à jour la date de dernière clôture\n• Réinitialiser le compteur pour la semaine suivante\n\n⚠️ Cette action nécessite une configuration backend (Apps Script).`)) {
+                return;
+            }
+
+            try {
+                // TODO: Appel au backend Apps Script pour clôturer la semaine
+                // Vous devrez créer une action côté serveur qui :
+                // 1. Ajoute une ligne dans HISTORIQUE_SEMAINES avec les données de currentWeekData
+                // 2. Met à jour DERNIERE_CLOTURE dans CONFIG avec la date du jour
+                
+                alert('⚠️ La clôturation de semaine nécessite une configuration backend.\n\nVous devez créer une action Apps Script "cloturerSemaine" qui :\n\n1. Ajoute une ligne dans l\'onglet HISTORIQUE_SEMAINES\n2. Met à jour DERNIERE_CLOTURE dans CONFIG\n\nStructure de l\'action :\n{\n  type: "cloturerSemaine",\n  date: "2026-08-02",\n  recette: ' + currentWeekData.recette + ',\n  depenses: ' + currentWeekData.depenses + ',\n  beneficeBrut: ' + currentWeekData.beneficeBrut + ',\n  impot: ' + currentWeekData.impot + ',\n  beneficeNet: ' + currentWeekData.beneficeNet + '\n}');
+                
+                // Une fois le backend configuré, décommenter :
+                /*
+                const APPS_SCRIPT_URL = 'URL_DE_VOTRE_APPS_SCRIPT_ICI';
+                const res = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        type: 'cloturerSemaine',
+                        date: new Date().toISOString().split('T')[0],
+                        recette: currentWeekData.recette,
+                        depenses: currentWeekData.depenses,
+                        beneficeBrut: currentWeekData.beneficeBrut,
+                        impot: currentWeekData.impot,
+                        beneficeNet: currentWeekData.beneficeNet
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('✓ Semaine clôturée avec succès !');
+                    loadClotureData(); // Recharger les données
+                    init(); // Recharger le dashboard
+                } else {
+                    alert('Erreur : ' + result.error);
+                }
+                */
+            } catch (e) {
+                alert('Erreur lors de la clôturation : ' + e.message);
+            }
+        }
+
+        /* =========================================================================
+           PAGE HISTORIQUE DES CHARGES : Affiche toutes les dépenses/charges
+           ========================================================================= */
+        
+        let allCharges = []; // Stocke toutes les charges
+        let filteredCharges = []; // Charges après filtrage
+
+        async function loadChargesHistory() {
+            const dot = document.getElementById('charges-sync-dot');
+            const label = document.getElementById('charges-sync-label');
+            
+            try {
+                dot.classList.remove('warn', 'error');
+                label.textContent = 'Chargement...';
+                
+                // Récupérer les données des charges
+                const res = await fetch(gvizUrl('💰 Charges'));
+                const text = await res.text();
+                const chargesRows = JSON.parse(text.substring(47, text.length - 2)).table.rows;
+
+                // Parser toutes les charges
+                allCharges = [];
+                const dates = new Set();
+                const types = new Set();
+
+                chargesRows.forEach(row => {
+                    if (!row.c[0] || !row.c[0].v) return;
+                    
+                    const dateStr = row.c[0].v;
+                    const date = parseDateFrancaise(dateStr);
+                    const type = row.c[1]?.v || 'Non spécifié';
+                    const description = row.c[2]?.v || '';
+                    const montant = parseFloat(row.c[3]?.v) || 0;
+                    const employe = row.c[4]?.v || 'Non renseigné';
+                    const commentaire = row.c[5]?.v || '';
+
+                    allCharges.push({
+                        date: date,
+                        dateStr: dateStr,
+                        type: type,
+                        description: description,
+                        montant: montant,
+                        employe: employe,
+                        commentaire: commentaire
+                    });
+
+                    if (date) dates.add(dateStr);
+                    types.add(type);
+                });
+
+                // Trier par date décroissante (plus récent en premier)
+                allCharges.sort((a, b) => {
+                    if (!a.date) return 1;
+                    if (!b.date) return -1;
+                    return b.date - a.date;
+                });
+
+                // Remplir les filtres
+                const dateSelect = document.getElementById('fChargeDate');
+                dateSelect.innerHTML = '<option value="">Toutes</option>';
+                Array.from(dates).sort().reverse().forEach(d => {
+                    dateSelect.innerHTML += `<option value="${d}">${d}</option>`;
+                });
+
+                const typeSelect = document.getElementById('fChargeType');
+                typeSelect.innerHTML = '<option value="">Tous</option>';
+                Array.from(types).sort().forEach(t => {
+                    typeSelect.innerHTML += `<option value="${t}">${t}</option>`;
+                });
+
+                // Ajouter les écouteurs d'événements pour les filtres
+                document.getElementById('fChargeDate').onchange = applyChargesFilters;
+                document.getElementById('fChargeType').onchange = applyChargesFilters;
+                document.getElementById('fChargeMontantMin').oninput = applyChargesFilters;
+                document.getElementById('fChargeMontantMax').oninput = applyChargesFilters;
+
+                // Afficher toutes les charges
+                applyChargesFilters();
+
+                label.textContent = 'Données à jour';
+                
+            } catch (e) {
+                console.error('Erreur loadChargesHistory:', e);
+                dot.classList.add('error');
+                label.textContent = 'Erreur de chargement';
+                label.classList.add('syncing');
+                document.getElementById('charges-table-body').innerHTML = 
+                    '<tr><td colspan="6" style="text-align:center; padding:40px; color: var(--red-600);">Erreur : ' + e.message + '</td></tr>';
+            }
+        }
+
+        function applyChargesFilters() {
+            const dateFilter = document.getElementById('fChargeDate').value;
+            const typeFilter = document.getElementById('fChargeType').value;
+            const montantMin = parseFloat(document.getElementById('fChargeMontantMin').value) || 0;
+            const montantMax = parseFloat(document.getElementById('fChargeMontantMax').value) || Infinity;
+
+            filteredCharges = allCharges.filter(charge => {
+                if (dateFilter && charge.dateStr !== dateFilter) return false;
+                if (typeFilter && charge.type !== typeFilter) return false;
+                if (charge.montant < montantMin || charge.montant > montantMax) return false;
+                return true;
+            });
+
+            renderChargesTable();
+            updateChargesStats();
+        }
+
+        function renderChargesTable() {
+            const tbody = document.getElementById('charges-table-body');
+            const empty = document.getElementById('charges-empty');
+            const countPill = document.getElementById('charges-count-pill');
+
+            if (!filteredCharges || filteredCharges.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                countPill.textContent = '0 résultat';
+                return;
+            }
+
+            empty.style.display = 'none';
+            countPill.textContent = `${filteredCharges.length} résultat${filteredCharges.length > 1 ? 's' : ''}`;
+
+            let html = '';
+            filteredCharges.forEach(charge => {
+                const dateDisplay = charge.date ? charge.date.toLocaleDateString('fr-FR') : charge.dateStr;
+                html += `
+                    <tr>
+                        <td>${dateDisplay}</td>
+                        <td>${charge.type}</td>
+                        <td>${charge.description}</td>
+                        <td style="text-align:right; font-weight:600; color:var(--red-600);">${money(charge.montant)}</td>
+                        <td>${charge.employe}</td>
+                        <td style="font-size:0.85em; color:var(--ink-soft);">${charge.commentaire}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function updateChargesStats() {
+            const total = filteredCharges.reduce((sum, c) => sum + c.montant, 0);
+            const count = filteredCharges.length;
+            const moyenne = count > 0 ? total / count : 0;
+
+            document.getElementById('charges-total').textContent = money(total);
+            document.getElementById('charges-count').textContent = count;
+            document.getElementById('charges-moyenne').textContent = money(moyenne);
+        }
+
+        function resetChargesFilters() {
+            document.getElementById('fChargeDate').value = '';
+            document.getElementById('fChargeType').value = '';
+            document.getElementById('fChargeMontantMin').value = '';
+            document.getElementById('fChargeMontantMax').value = '';
+            applyChargesFilters();
+        }
+
+        function startAutoRefresh(){
+            if(autoRefreshTimer) clearInterval(autoRefreshTimer);
+            autoRefreshTimer = setInterval(loadInvoicesGuarded, AUTO_REFRESH_MS);
+        }
+
+        /* =========================================================================
+           DÉMARRAGE : les deux pages se chargent et se synchronisent en tâche de
+           fond en même temps, pour que les données soient à jour dès qu'on change
+           d'onglet.
+           ========================================================================= */
+        
+        // Gestion sécurisée des onglets admin par mot de passe à la demande
+        function checkAdminTab(tabName) {
+            if (tabName === 'cloture' || tabName === 'charges') {
+                if (!hasRole('admin')) {
+                    const success = promptAdminPassword();
+                    if (success) {
+                        // Afficher le lien Config maintenant qu'on est connecté admin
+                        const configLink = document.getElementById('config-link');
+                        if (configLink) configLink.style.display = 'block';
+                        return true;
+                    }
+                    // Annuler le changement d'onglet si mot de passe faux/annulé
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Surcharge de la fonction showPage d'origine pour ajouter la validation
+        const originalShowPage = showPage;
+        showPage = function(name) {
+            if (!checkAdminTab(name)) {
+                return; // Bloque la transition vers l'onglet
+            }
+            originalShowPage(name);
+        };
+
+        // Supprimer la détection initiale d'auto-masquage pour laisser les onglets visibles par défaut, mais protégés au clic
+        if (hasRole('admin')) {
+            const configLink = document.getElementById('config-link');
+            if (configLink) configLink.style.display = 'block';
+        }
+        
+        async function loadInvoices() {
+            const dot = document.getElementById('syncDot');
+            const text = document.getElementById('syncText');
+            try {
+                const rows = await InvoiceService.getAll({ orderBy: 'date_vente', limit: 1000 });
+                invoices = rows.map(invoice => ({ numero: invoice.numero, date: String(invoice.date_vente || '').slice(0, 10), heure: invoice.heure || '', employe: invoice.employe_nom || '', caisse: invoice.caisse || '', nb: Number(invoice.nb_produits || 0), ttc: Number(invoice.total_ttc || 0), reel: Number(invoice.total_ttc || 0), paiement: invoice.paiement || '', remise: Number(invoice.remise_pack || 0) + Number(invoice.remise_employe || 0) }));
+                dot.classList.remove('warn', 'error'); text.textContent = `Synchronisé — ${invoices.length} facture(s) · ${new Date().toLocaleTimeString('fr-FR')}`;
+            } catch (error) { console.error(error); dot.classList.add('error'); text.textContent = 'Impossible de charger les factures Supabase.'; }
+            resetFilterOptions(); populateFilters(); render();
+        }
+
+        async function init() {
+            try {
+                const [invoicesRows, products, employees] = await Promise.all([InvoiceService.getAll({ orderBy: 'date_vente', limit: 1000 }), ProductService.getAll({ orderBy: 'nom' }), EmployeeService.getAll({ orderBy: 'nom' })]);
+                window.dashboardSupabaseData = { invoices: invoicesRows, products, employees };
+                await loadInvoices();
+            } catch (error) { console.error(error); showFatalError('Impossible de charger les données Supabase : ' + error.message); }
+        }
+
+        init();
+        loadInvoicesGuarded();
+        startAutoRefresh();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configuration — LTD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+    <style>
+        h1 {
+            color: var(--navy-900);
+            font-size: 1.4em;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .heading-sub {
+            font-size: 0.78em;
+            color: var(--ink-soft);
+            margin: 2px 0 0;
+        }
+
+        .tab-nav {
+            display: inline-flex;
+            gap: 4px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            border: none;
+            background: transparent;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.88em;
+            color: var(--ink-soft);
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .tab-btn:hover:not(.active) { background: var(--surface-alt); color: var(--ink); }
+
+        .tab-btn.active {
+            background: var(--navy-900);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .panel h2 {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--navy-900);
+            margin: 0 0 16px 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-field label {
+            font-weight: 600;
+            font-size: 0.85em;
+            color: var(--ink);
+        }
+
+        .form-field input, .form-field select, .form-field textarea {
+            padding: 10px 14px;
+            border: 2px solid var(--line);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9em;
+        }
+
+        .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+            outline: none;
+            border-color: var(--navy-800);
+        }
+
+        .form-field textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+
+        .btn-primary {
+            background: var(--navy-900);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--navy-800);
+        }
+
+        .btn-danger {
+            background: var(--red-600);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--red-700);
+        }
+
+        .btn-secondary {
+            background: var(--surface-alt);
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+
+        .btn-secondary:hover {
+            background: var(--paper);
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88em;
+        }
+
+        thead {
+            background: var(--navy-900);
+            color: white;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        tbody tr:hover {
+            background: var(--surface-alt);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge.admin {
+            background: var(--navy-800);
+            color: white;
+        }
+
+        .badge.employe {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .badge.actif {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .badge.inactif {
+            background: var(--line);
+            color: var(--ink-soft);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+
+        .stats-mini {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-mini {
+            background: var(--surface-alt);
+            padding: 12px 16px;
+            border-radius: 8px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .stat-mini-label {
+            font-size: 0.75em;
+            color: var(--ink-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-mini-value {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--navy-900);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--ink-soft);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(18, 21, 43, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--paper);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="main-nav">
+    <a href="index.html" class="nav-brand">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+        <span class="nav-brand-text">Limited Gasoline</span>
+    </a>
+    <span class="nav-sep"></span>
+    <div class="nav-links">
+        <a href="index.html" class="nav-home">Accueil</a>
+        <a href="Planning.html">Planning</a>
+        <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+        <a href="Ship%20From%20Store.html">Ship From Store</a>
+        <a href="Dashboard.html">Dashboard</a>
+        <a href="Fast%20Fashion.html">Fast Fashion</a>
+        <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+        <a href="Config.html" class="active">⚙️ Configuration</a>
+    </div>
+    <button id="logout-btn" class="btn-secondary btn-small" style="margin-left: auto;">🚪 Déconnexion</button>
+</nav>
+
+<div class="page-shell">
+    <div class="top-bar" style="margin-bottom: 24px;">
+        <div class="heading">
+            <div class="heading-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m5.2-15.2-4.2 4.2m0 6-4.2 4.2M23 12h-6m-6 0H1m20.2-5.2-4.2 4.2m0 6-4.2 4.2"/></svg>
+            </div>
+            <div>
+                <h1>Configuration</h1>
+                <p class="heading-sub">Gestion des paramètres système — Réservé aux administrateurs</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-nav">
+        <button class="tab-btn active" id="tab-btn-fidelite" onclick="showPage('fidelite')">💳 Cartes Fidélité</button>
+        <button class="tab-btn" id="tab-btn-employes" onclick="showPage('employes')">👥 Employés</button>
+        <button class="tab-btn" id="tab-btn-packs" onclick="showPage('packs')">📦 Packs de Vente</button>
+    </div>
+
+    <!-- ==================== PAGE 1 : CARTES FIDÉLITÉ ==================== -->
+    <section id="page-fidelite" class="page active">
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <div class="stat-mini-label">Total cartes</div>
+                <div class="stat-mini-value" id="fidelite-total">0</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-label">Cartes actives</div>
+                <div class="stat-mini-value" id="fidelite-actives">0</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-label">Points totaux</div>
+                <div class="stat-mini-value" id="fidelite-points">0</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2>Liste des cartes de fidélité</h2>
+                <button class="btn btn-primary" onclick="openFideliteModal()">+ Nouvelle carte</button>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Téléphone</th>
+                            <th>Prénom</th>
+                            <th>Points</th>
+                            <th>Statut</th>
+                            <th>Date création</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fidelite-table-body">
+                        <tr><td colspan="7" class="empty-state">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGE 2 : EMPLOYÉS ==================== -->
+    <section id="page-employes" class="page">
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <div class="stat-mini-label">Total employés</div>
+                <div class="stat-mini-value" id="employes-total">0</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-label">Employés actifs</div>
+                <div class="stat-mini-value" id="employes-actifs">0</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-label">Administrateurs</div>
+                <div class="stat-mini-value" id="employes-admins">0</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2>Liste des employés</h2>
+                <button class="btn btn-primary" onclick="openEmployeModal()">+ Nouvel employé</button>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Téléphone</th>
+                            <th>Rôle</th>
+                            <th>Statut</th>
+                            <th>Date d'embauche</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employes-table-body">
+                        <tr><td colspan="6" class="empty-state">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== PAGE 3 : PACKS DE VENTE ==================== -->
+    <section id="page-packs" class="page">
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <div class="stat-mini-label">Total packs</div>
+                <div class="stat-mini-value" id="packs-total">0</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-label">Packs actifs</div>
+                <div class="stat-mini-value" id="packs-actifs">0</div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-label">Remise moyenne</div>
+                <div class="stat-mini-value" id="packs-remise">0%</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2>Liste des packs de vente</h2>
+                <button class="btn btn-primary" onclick="openPackModal()">+ Nouveau pack</button>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom du pack</th>
+                            <th>Description</th>
+                            <th>Prix normal</th>
+                            <th>Prix pack</th>
+                            <th>Remise</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packs-table-body">
+                        <tr><td colspan="7" class="empty-state">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modal Carte Fidélité -->
+<div id="modal-fidelite" class="modal-overlay">
+    <div class="modal">
+        <h2 id="fidelite-modal-title">Nouvelle carte de fidélité</h2>
+        <form id="fidelite-form">
+            <div class="form-grid">
+                <div class="form-field">
+                    <label>Nom du client *</label>
+                    <input type="text" id="f_nom" required>
+                </div>
+                <div class="form-field">
+                    <label>Téléphone *</label>
+                    <input type="tel" id="f_tel" required>
+                </div>
+                <div class="form-field">
+                    <label>Prénom</label>
+                    <input type="text" id="f_prenom">
+                </div>
+                <div class="form-field">
+                    <label>Points initiaux</label>
+                    <input type="number" id="f_points" value="0" min="0">
+                </div>
+                <div class="form-field">
+                    <label>Statut</label>
+                    <select id="f_statut">
+                        <option value="actif">Actif</option>
+                        <option value="inactif">Inactif</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeFideliteModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Employé -->
+<div id="modal-employe" class="modal-overlay">
+    <div class="modal">
+        <h2 id="employe-modal-title">Nouvel employé</h2>
+        <form id="employe-form">
+            <div class="form-grid">
+                <div class="form-field">
+                    <label>Nom complet *</label>
+                    <input type="text" id="e_nom" required>
+                </div>
+                <div class="form-field">
+                    <label>Téléphone</label>
+                    <input type="tel" id="e_tel">
+                </div>
+                <div class="form-field">
+                    <label>Rôle (Poste) *</label>
+                    <input type="text" id="e_role" placeholder="Ex: Directeur, Vendeur, Mecano, Co-Patron" required>
+                </div>
+                <div class="form-field">
+                    <label>Droits d'Accès</label>
+                    <select id="e_droits">
+                        <option value="employe">Employé (Accès De Base)</option>
+                        <option value="admin">Administrateur (Comptabilité/Packs/Employés)</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Statut</label>
+                    <select id="e_statut">
+                        <option value="actif">Actif</option>
+                        <option value="inactif">Inactif</option>
+                    </select>
+                </div>
+                </div>
+                <div class="form-field">
+                    <label>Date d'embauche</label>
+                    <input type="date" id="e_date" value="">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEmployeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Pack -->
+<div id="modal-pack" class="modal-overlay">
+    <div class="modal" style="max-width: 700px;">
+        <h2 id="pack-modal-title">Nouveau pack de vente</h2>
+        <form id="pack-form">
+            <div class="form-grid">
+                <div class="form-field full">
+                    <label>Nom du pack *</label>
+                    <input type="text" id="p_nom" required>
+                </div>
+                <div class="form-field full">
+                    <label>Description</label>
+                    <textarea id="p_description" placeholder="Courte description de l'offre..."></textarea>
+                </div>
+            </div>
+
+            <!-- Ajout des produits composants le pack -->
+            <div style="margin: 20px 0; border-top: 1px solid var(--line); padding-top: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 style="margin:0; font-size:1em; color:var(--navy-900);">Produits du pack</h3>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="addPackProductRow()">+ Ajouter un produit</button>
+                </div>
+                <div class="table-scroll" style="background: var(--surface-alt); border-radius: 8px; padding: 12px;">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr style="background: var(--navy-800);">
+                                <th>Produit</th>
+                                <th style="width: 100px;">Quantité</th>
+                                <th style="width: 80px; text-align: center;">Supprimer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pack-products-list">
+                            <!-- Les lignes de produits s'ajouteront ici -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-field">
+                    <label>Prix normal cumulé ($)</label>
+                    <input type="text" id="p_prix_normal" readonly value="0.00" style="background: var(--surface-alt); font-weight: 600;">
+                </div>
+                <div class="form-field">
+                    <label>Remise (%)</label>
+                    <input type="number" id="p_remise" min="0" max="100" value="10" oninput="calculatePackPrice()">
+                </div>
+                <div class="form-field full">
+                    <label>Prix final du pack ($) *</label>
+                    <input type="number" id="p_prix_pack" required min="0" step="0.01" value="0.00" oninput="calculatePackRemise()">
+                </div>
+                <div class="form-field full">
+                    <label>Statut</label>
+                    <select id="p_statut">
+                        <option value="actif">Actif</option>
+                        <option value="inactif">Inactif</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closePackModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/services/products.js"></script>
+<script src="js/services/employees.js"></script>
+<script src="js/services/customers.js"></script>
+<script src="js/services/settings.js"></script>
+<script>
+    // Vérifier les droits admin
+    checkAuth('admin');
+
+    // Navigation
+    function showPage(name) {
+        document.getElementById('page-fidelite').classList.toggle('active', name === 'fidelite');
+        document.getElementById('page-employes').classList.toggle('active', name === 'employes');
+        document.getElementById('page-packs').classList.toggle('active', name === 'packs');
+        document.getElementById('tab-btn-fidelite').classList.toggle('active', name === 'fidelite');
+        document.getElementById('tab-btn-employes').classList.toggle('active', name === 'employes');
+        document.getElementById('tab-btn-packs').classList.toggle('active', name === 'packs');
+
+        if (name === 'fidelite') loadFideliteData();
+        if (name === 'employes') loadEmployesData();
+        if (name === 'packs') loadPacksData();
+    }
+
+    // ========== CARTES FIDÉLITÉ ==========
+    let fideliteData = [];
+
+    async function loadFideliteData() {
+        // Charger depuis localStorage (ou API dans un vrai système)
+        try {
+            const rows = await CustomerService.getAll();
+            fideliteData = rows.map(row => ({ id: row.telephone, nom: row.nom || '', prenom: row.prenom || '', tel: row.telephone || '', points: row.points || 0, statut: String(row.statut || 'Actif').toLowerCase(), dateCreation: row.date_creation ? new Date(row.date_creation).toLocaleDateString('fr-FR') : '' }));
+        } catch (error) { console.error(error); fideliteData = []; }
+        renderFideliteTable();
+        updateFideliteStats();
+    }
+
+    function renderFideliteTable() {
+        const tbody = document.getElementById('fidelite-table-body');
+        if (fideliteData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucune carte de fidélité enregistrée</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = fideliteData.map((card, index) => `
+            <tr>
+                <td>${card.nom}</td>
+                <td>${card.tel}</td>
+                <td>${card.prenom || '—'}</td>
+                <td><strong>${card.points}</strong></td>
+                <td><span class="badge ${card.statut}">${card.statut === 'actif' ? 'Actif' : 'Inactif'}</span></td>
+                <td>${card.dateCreation}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-secondary btn-small" onclick="editFidelite(${index})">✏️ Éditer</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteFidelite(${index})">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateFideliteStats() {
+        document.getElementById('fidelite-total').textContent = fideliteData.length;
+        document.getElementById('fidelite-actives').textContent = fideliteData.filter(c => c.statut === 'actif').length;
+        document.getElementById('fidelite-points').textContent = fideliteData.reduce((sum, c) => sum + (c.points || 0), 0);
+    }
+
+    let editingFideliteIndex = null;
+
+    function openFideliteModal(index = null) {
+        editingFideliteIndex = index;
+        const modal = document.getElementById('modal-fidelite');
+        
+        if (index !== null) {
+            const card = fideliteData[index];
+            document.getElementById('fidelite-modal-title').textContent = 'Modifier la carte';
+            document.getElementById('f_nom').value = card.nom;
+            document.getElementById('f_tel').value = card.tel;
+            document.getElementById('f_prenom').value = card.prenom || '';
+            document.getElementById('f_points').value = card.points;
+            document.getElementById('f_statut').value = card.statut;
+        } else {
+            document.getElementById('fidelite-modal-title').textContent = 'Nouvelle carte de fidélité';
+            document.getElementById('fidelite-form').reset();
+        }
+        
+        modal.classList.add('show');
+    }
+
+    function closeFideliteModal() {
+        document.getElementById('modal-fidelite').classList.remove('show');
+        editingFideliteIndex = null;
+    }
+
+    function editFidelite(index) {
+        openFideliteModal(index);
+    }
+
+    async function deleteFidelite(index) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cette carte de fidélité ?')) return;
+        try { await CustomerService.delete(fideliteData[index].id); await loadFideliteData(); } catch (error) { console.error(error); alert('Suppression impossible.'); }
+    }
+
+    document.getElementById('fidelite-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const card = {
+            nom: document.getElementById('f_nom').value,
+            tel: document.getElementById('f_tel').value,
+            prenom: document.getElementById('f_prenom').value.trim(),
+            points: parseInt(document.getElementById('f_points').value) || 0,
+            statut: document.getElementById('f_statut').value,
+            dateCreation: editingFideliteIndex !== null ? fideliteData[editingFideliteIndex].dateCreation : new Date().toLocaleDateString('fr-FR')
+        };
+
+        try {
+            const payload = { telephone: card.tel, nom: card.nom, prenom: card.prenom, points: card.points, statut: card.statut };
+            if (editingFideliteIndex !== null) await CustomerService.update(fideliteData[editingFideliteIndex].id, payload); else await CustomerService.create(payload);
+            closeFideliteModal(); await loadFideliteData();
+        } catch (error) { console.error(error); alert('Enregistrement impossible.'); }
+    });
+
+    // ========== EMPLOYÉS ==========
+    let employesData = [];
+
+    async function loadEmployesData() {
+        try {
+            const rows = await EmployeeService.getAll();
+            employesData = rows.map(row => ({ 
+                id: row.id, 
+                nom: row.nom || '', 
+                tel: '', 
+                role: row.poste || '', 
+                droits: row.role_systeme || 'employe',
+                statut: 'actif', 
+                dateEmbauche: row.created_at ? String(row.created_at).slice(0, 10) : '' 
+            }));
+        } catch (error) { console.error(error); employesData = []; }
+        renderEmployesTable();
+        updateEmployesStats();
+    }
+
+    function renderEmployesTable() {
+        const tbody = document.getElementById('employes-table-body');
+        if (employesData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucun employé enregistré</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = employesData.map((emp, index) => `
+            <tr>
+                <td>${emp.nom}</td>
+                <td>${emp.tel || '—'}</td>
+                <td><span class="badge ${emp.role}">${emp.role === 'admin' ? 'Admin' : 'Employé'}</span></td>
+                <td><span class="badge ${emp.statut}">${emp.statut === 'actif' ? 'Actif' : 'Inactif'}</span></td>
+                <td>${emp.dateEmbauche}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-secondary btn-small" onclick="editEmploye(${index})">✏️ Éditer</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteEmploye(${index})">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateEmployesStats() {
+        document.getElementById('employes-total').textContent = employesData.length;
+        document.getElementById('employes-actifs').textContent = employesData.filter(e => e.statut === 'actif').length;
+        document.getElementById('employes-admins').textContent = employesData.filter(e => e.role === 'admin').length;
+    }
+
+    let editingEmployeIndex = null;
+
+    function openEmployeModal(index = null) {
+        editingEmployeIndex = index;
+        const modal = document.getElementById('modal-employe');
+        
+        if (index !== null) {
+            const emp = employesData[index];
+            document.getElementById('employe-modal-title').textContent = 'Modifier l\'employé';
+            document.getElementById('e_nom').value = emp.nom;
+            document.getElementById('e_tel').value = emp.tel || '';
+            document.getElementById('e_role').value = emp.role;
+            document.getElementById('e_droits').value = emp.droits || 'employe';
+            document.getElementById('e_statut').value = emp.statut;
+            document.getElementById('e_date').value = emp.dateEmbauche;
+        } else {
+            document.getElementById('employe-modal-title').textContent = 'Nouvel employé';
+            document.getElementById('employe-form').reset();
+            document.getElementById('e_date').value = new Date().toISOString().split('T')[0];
+        }
+        
+        modal.classList.add('show');
+    }
+
+    function closeEmployeModal() {
+        document.getElementById('modal-employe').classList.remove('show');
+        editingEmployeIndex = null;
+    }
+
+    function editEmploye(index) {
+        openEmployeModal(index);
+    }
+
+    async function deleteEmploye(index) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) return;
+        try { await EmployeeService.delete(employesData[index].id); await loadEmployesData(); } catch (error) { console.error(error); alert('Suppression impossible.'); }
+    }
+
+    document.getElementById('employe-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const emp = {
+            nom: document.getElementById('e_nom').value,
+            tel: document.getElementById('e_tel').value,
+            role: document.getElementById('e_role').value,
+            droits: document.getElementById('e_droits').value,
+            statut: document.getElementById('e_statut').value,
+            dateEmbauche: document.getElementById('e_date').value
+        };
+
+        try {
+            const payload = { nom: emp.nom, poste: emp.role, role_systeme: emp.droits };
+            if (editingEmployeIndex !== null) await EmployeeService.update(employesData[editingEmployeIndex].id, payload); else await EmployeeService.create(payload);
+            closeEmployeModal(); await loadEmployesData();
+        } catch (error) { console.error(error); alert('Enregistrement impossible.'); }
+    });
+
+    // ========== PACKS DE VENTE ==========
+    let packsData = [];
+    let availableProducts = []; // Tous les produits récupérés pour le select
+
+    async function loadPacksData() {
+        try {
+            // Charger les produits pour le sélecteur
+            try {
+                availableProducts = await executeSupabase(window.supabaseClient.from('produits').select('*').order('nom'));
+            } catch (errProd) {
+                console.error('Erreur chargement produits:', errProd);
+                availableProducts = [];
+            }
+
+            const rows = await executeSupabase(window.supabaseClient.from('offres').select('*').order('nom').limit(1000));
+            packsData = rows.map(row => ({ 
+                id: row.id, 
+                nom: row.nom || '', 
+                description: row.description || '', 
+                prixNormal: Number(row.prix_normal || 0), 
+                prixPack: Number(row.prix_offre || 0), 
+                statut: row.statut || 'actif',
+                produits: row.produits_json || [] // Format attendu: [{id, nom, qty}]
+            }));
+        } catch (error) { console.error(error); packsData = []; }
+        renderPacksTable();
+        updatePacksStats();
+    }
+
+    function renderPacksTable() {
+        const tbody = document.getElementById('packs-table-body');
+        if (packsData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucun pack de vente créé</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = packsData.map((pack, index) => {
+            const remise = pack.prixNormal > 0 ? ((pack.prixNormal - pack.prixPack) / pack.prixNormal * 100).toFixed(0) : 0;
+            return `
+                <tr>
+                    <td><strong>${pack.nom}</strong></td>
+                    <td>${pack.description || '—'}</td>
+                    <td>${pack.prixNormal.toFixed(2)} $</td>
+                    <td><strong>${pack.prixPack.toFixed(2)} $</strong></td>
+                    <td><span style="color: var(--green); font-weight:600;">-${remise}%</span></td>
+                    <td><span class="badge ${pack.statut}">${pack.statut === 'actif' ? 'Actif' : 'Inactif'}</span></td>
+                    <td class="action-buttons">
+                        <button class="btn btn-secondary btn-small" onclick="editPack(${index})">✏️ Éditer</button>
+                        <button class="btn btn-danger btn-small" onclick="deletePack(${index})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function updatePacksStats() {
+        document.getElementById('packs-total').textContent = packsData.length;
+        document.getElementById('packs-actifs').textContent = packsData.filter(p => p.statut === 'actif').length;
+        const avgRemise = packsData.length > 0 
+            ? packsData.reduce((sum, p) => sum + (p.prixNormal > 0 ? (p.prixNormal - p.prixPack) / p.prixNormal * 100 : 0), 0) / packsData.length
+            : 0;
+        document.getElementById('packs-remise').textContent = avgRemise.toFixed(0) + '%';
+    }
+
+    let editingPackIndex = null;
+
+    function addPackProductRow(productId = '', qty = 1) {
+        const tbody = document.getElementById('pack-products-list');
+        const rowId = 'row-' + Date.now() + Math.random().toString(36).substr(2, 5);
+
+        let options = availableProducts.map(p => `
+            <option value="${p.id}" data-price="${p.prix}" ${p.id == productId ? 'selected' : ''}>
+                ${p.nom} - ${p.prix.toFixed(2)} $
+            </option>
+        `).join('');
+
+        const tr = document.createElement('tr');
+        tr.id = rowId;
+        tr.innerHTML = `
+            <td>
+                <select class="pack-product-select" onchange="calculatePackPrice()" style="width: 100%; border: 1px solid var(--line); padding: 6px; border-radius: 4px;">
+                    <option value="">-- Choisir un produit --</option>
+                    ${options}
+                </select>
+            </td>
+            <td>
+                <input type="number" class="pack-product-qty" min="1" value="${qty}" oninput="calculatePackPrice()" style="width: 70px; border: 1px solid var(--line); padding: 6px; border-radius: 4px;">
+            </td>
+            <td style="text-align: center;">
+                <button type="button" class="btn btn-danger btn-small" onclick="document.getElementById('${rowId}').remove(); calculatePackPrice();">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        calculatePackPrice();
+    }
+
+    function calculatePackPrice() {
+        const rows = document.querySelectorAll('#pack-products-list tr');
+        let total = 0;
+        
+        rows.forEach(row => {
+            const select = row.querySelector('.pack-product-select');
+            const qtyInput = row.querySelector('.pack-product-qty');
+            if (select && qtyInput) {
+                const selectedOption = select.options[select.selectedIndex];
+                if (selectedOption && selectedOption.dataset.price) {
+                    const price = parseFloat(selectedOption.dataset.price) || 0;
+                    const qty = parseInt(qtyInput.value) || 0;
+                    total += price * qty;
+                }
+            }
+        });
+
+        document.getElementById('p_prix_normal').value = total.toFixed(2);
+        
+        const remiseInput = document.getElementById('p_remise');
+        const remise = parseFloat(remiseInput.value) || 0;
+        
+        const priceFinal = total * (1 - remise / 100);
+        document.getElementById('p_prix_pack').value = priceFinal.toFixed(2);
+    }
+
+    function calculatePackRemise() {
+        const normalPrice = parseFloat(document.getElementById('p_prix_normal').value) || 0;
+        const finalPrice = parseFloat(document.getElementById('p_prix_pack').value) || 0;
+        
+        if (normalPrice > 0) {
+            const remise = ((normalPrice - finalPrice) / normalPrice) * 100;
+            document.getElementById('p_remise').value = Math.max(0, Math.min(100, remise)).toFixed(0);
+        }
+    }
+
+    function openPackModal(index = null) {
+        editingPackIndex = index;
+        const modal = document.getElementById('modal-pack');
+        document.getElementById('pack-products-list').innerHTML = '';
+        
+        if (index !== null) {
+            const pack = packsData[index];
+            document.getElementById('pack-modal-title').textContent = 'Modifier le pack';
+            document.getElementById('p_nom').value = pack.nom;
+            document.getElementById('p_description').value = pack.description || '';
+            document.getElementById('p_prix_normal').value = pack.prixNormal.toFixed(2);
+            document.getElementById('p_prix_pack').value = pack.prixPack.toFixed(2);
+            document.getElementById('p_statut').value = pack.statut;
+
+            // Charger les produits existants du pack
+            if (pack.produits && pack.produits.length > 0) {
+                pack.produits.forEach(p => {
+                    addPackProductRow(p.id, p.qty);
+                });
+            }
+            calculatePackPrice();
+        } else {
+            document.getElementById('pack-modal-title').textContent = 'Nouveau pack de vente';
+            document.getElementById('pack-form').reset();
+            document.getElementById('p_prix_normal').value = '0.00';
+            document.getElementById('p_prix_pack').value = '0.00';
+            document.getElementById('p_remise').value = '10';
+        }
+        
+        modal.classList.add('show');
+    }
+
+    function closePackModal() {
+        document.getElementById('modal-pack').classList.remove('show');
+        editingPackIndex = null;
+    }
+
+    function editPack(index) {
+        openPackModal(index);
+    }
+
+    async function deletePack(index) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce pack ?')) return;
+        try { await executeSupabase(window.supabaseClient.from('offres').delete().eq('id', packsData[index].id)); await loadPacksData(); } catch (error) { console.error(error); alert('Suppression impossible.'); }
+    }
+
+    document.getElementById('pack-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const rows = document.querySelectorAll('#pack-products-list tr');
+        let produitsJson = [];
+        
+        rows.forEach(row => {
+            const select = row.querySelector('.pack-product-select');
+            const qtyInput = row.querySelector('.pack-product-qty');
+            if (select && select.value && qtyInput) {
+                const selectedOption = select.options[select.selectedIndex];
+                produitsJson.push({
+                    id: select.value,
+                    nom: selectedOption.text.split(' - ')[0],
+                    qty: parseInt(qtyInput.value) || 1
+                });
+            }
+        });
+
+        const pack = {
+            nom: document.getElementById('p_nom').value,
+            description: document.getElementById('p_description').value,
+            prixNormal: parseFloat(document.getElementById('p_prix_normal').value) || 0,
+            prixPack: parseFloat(document.getElementById('p_prix_pack').value) || 0,
+            statut: document.getElementById('p_statut').value,
+            produits: produitsJson
+        };
+
+        try {
+            const payload = { 
+                nom: pack.nom, 
+                description: pack.description,
+                prix_normal: pack.prixNormal,
+                prix_offre: pack.prixPack, 
+                statut: pack.statut,
+                produits_json: pack.produits // Champ JSONB pour stocker la liste des articles
+            };
+            
+            if (editingPackIndex !== null) await executeSupabase(window.supabaseClient.from('offres').update(payload).eq('id', packsData[editingPackIndex].id));
+            else await executeSupabase(window.supabaseClient.from('offres').insert(payload));
+            closePackModal(); await loadPacksData();
+        } catch (error) { console.error(error); alert('Enregistrement impossible.'); }
+    });
+
+    // Charger les données au démarrage
+    loadFideliteData();
+</script>
+
+</body>
+</html>

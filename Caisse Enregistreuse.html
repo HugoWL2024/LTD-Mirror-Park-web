@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Caisse LTD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+    <script src="auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/services/products.js"></script>
+    <script src="js/services/employees.js"></script>
+    <script src="js/services/customers.js"></script>
+    <script src="js/services/invoices.js"></script>
+    <script src="js/services/settings.js"></script>
+    <script src="js/services/offers.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', function() {
+        checkAuth('employe');
+        if (hasRole('admin')) {
+          const configLink = document.getElementById('config-link');
+          if (configLink) configLink.style.display = 'block';
+        }
+      });
+    </script>
+    <style>
+        .cat-title {
+            color: var(--ink);
+            font-size: 1.15em;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            padding-bottom: 10px;
+            margin: 0 0 16px 0;
+            border-bottom: 2px solid var(--navy-900);
+            display: inline-block;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .item {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            padding: 14px 12px 12px;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 14px;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+        }
+
+        .item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--navy-700);
+        }
+
+        .item:active { transform: translateY(-1px) scale(0.99); }
+
+        .item.disabled {
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .item.disabled:hover { transform: none; border-color: var(--line); }
+
+        .item.disabled img { filter: grayscale(1); opacity: 0.35; }
+
+        .item-img-wrap {
+            width: 100%;
+            height: 84px;
+            border-radius: 8px;
+            background: var(--surface-alt);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .item-name {
+            font-size: 0.82em;
+            font-weight: 600;
+            color: var(--ink);
+            margin: 0 0 4px;
+            line-height: 1.25;
+            min-height: 2.1em;
+        }
+
+        .item-price {
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--red-600);
+            font-weight: 600;
+            font-size: 0.95em;
+            margin: 0 0 6px;
+        }
+
+        .stock-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.68em;
+            font-weight: 600;
+            color: var(--ink-soft);
+            background: var(--surface-alt);
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .stock-tag.stock-low {
+            color: var(--amber);
+            background: var(--amber-bg);
+        }
+
+        .stock-tag.stock-out {
+            color: var(--red-600);
+            background: #FBEAEA;
+        }
+
+        .promo-tag {
+            background: var(--red-600);
+            color: white;
+            padding: 3px 8px;
+            font-size: 0.65em;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            border-radius: 6px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .out-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--navy-950);
+            color: white;
+            padding: 3px 8px;
+            font-size: 0.62em;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            border-radius: 6px;
+        }
+
+        /* ============================================================
+           CAISSE (panneau latéral)
+           ============================================================ */
+        .sidebar {
+            flex: 1;
+            min-width: 340px;
+            max-width: 400px;
+            background: var(--navy-950);
+            background-image: radial-gradient(circle at 0% 0%, var(--navy-900), var(--navy-950) 60%);
+            padding: 22px 20px 20px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: var(--red-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .brand-mark svg { width: 18px; height: 18px; color: white; }
+
+        .brand-title {
+            font-size: 1.15em;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            margin: 0;
+        }
+
+        .brand-sub {
+            font-size: 0.72em;
+            color: rgba(255,255,255,0.5);
+            margin: 0;
+        }
+
+        #datetime {
+            color: rgba(255,255,255,0.75);
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 8px;
+            border-radius: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.76em;
+            margin-bottom: 14px;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+
+        .field-label {
+            font-size: 0.68em;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+            margin: 0 2px 6px;
+        }
+
+        .select-wrap {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .select-wrap svg.chevron {
+            position: absolute;
+            right: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            pointer-events: none;
+            color: var(--navy-900);
+        }
+
+        select#salarie-select,
+        select.mode-paiement {
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 12px 36px 12px 13px;
+            width: 100%;
+            border-radius: 10px;
+            box-sizing: border-box;
+            border: none;
+            background: white;
+            color: var(--ink);
+            font-family: inherit;
+            font-size: 14.5px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        select#salarie-select:focus,
+        select.mode-paiement:focus {
+            outline: 2px solid var(--red-500);
+            outline-offset: 1px;
+        }
+
+        .salarie-box {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.09);
+            color: white;
+            padding: 11px 13px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .salarie-box .fn-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9em;
+        }
+
+        .salarie-box .fn-text { line-height: 1.3; }
+
+        .salarie-box strong {
+            display: block;
+            font-size: 0.66em;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+        }
+
+        #salarie-info { font-size: 0.95em; font-weight: 600; }
+
+        .btn-remise {
+            width: 100%;
+            padding: 11px;
+            margin-bottom: 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1.5px dashed rgba(255,255,255,0.35);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: inherit;
+            font-size: 13.5px;
+            transition: background .15s ease, border-color .15s ease;
+        }
+
+        .btn-remise:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.55);
+        }
+
+        #cart {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin: 4px 0 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .cart-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 26px 10px;
+            color: rgba(255,255,255,0.4);
+            text-align: center;
+        }
+
+        .cart-empty svg { width: 26px; height: 26px; opacity: 0.6; }
+        .cart-empty span { font-size: 0.82em; }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.14);
+            font-size: 0.92em;
+        }
+
+        .cart-item:last-child { border-bottom: none; }
+
+        .cart-item .ci-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .cart-item .ci-qty {
+            font-family: 'IBM Plex Mono', monospace;
+            color: rgba(255,255,255,0.55);
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .cart-item .ci-price {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .btn-del {
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            font-weight: 700;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            transition: background .15s ease, color .15s ease;
+        }
+
+        .btn-del:hover { background: var(--red-600); color: white; }
+
+        .bundle-line {
+            background: var(--green-bg);
+            color: #16693A;
+            font-size: 0.83em;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 7px;
+            font-weight: 600;
+        }
+
+        .bundle-promo-box {
+            background: var(--green-bg);
+            border: 1px solid #16693A33;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 9px;
+        }
+
+        .bundle-promo-title {
+            color: #16693A;
+            font-size: 0.82em;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 6px;
+        }
+
+        .bundle-promo-item {
+            color: #16693A;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 2px 0;
+        }
+
+        .bundle-promo-total {
+            color: #16693A;
+            font-size: 0.85em;
+            font-weight: 700;
+            border-top: 1px dashed #16693A55;
+            margin-top: 6px;
+            padding-top: 6px;
+            text-align: right;
+        }
+
+        .remise-line {
+            background: #FDE9E8;
+            color: var(--red-700);
+            font-size: 0.83em;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 7px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remise-line .btn-del {
+            background: rgba(151, 1, 0, 0.12);
+            color: var(--red-700);
+        }
+        .remise-line .btn-del:hover { background: var(--red-600); color: white; }
+
+        /* -------- Panneau total, façon afficheur de caisse -------- */
+        .total-panel {
+            background: var(--navy-900);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .total-label {
+            font-size: 0.72em;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.45);
+        }
+
+        #total {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.7em;
+            font-weight: 600;
+            color: #6CF089;
+            text-shadow: 0 0 14px rgba(108, 240, 137, 0.35);
+            letter-spacing: 0.01em;
+        }
+
+        .btn-valider {
+            background: linear-gradient(180deg, var(--red-500), var(--red-600));
+            color: white;
+            border: none;
+            padding: 16px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: inherit;
+            font-size: 15px;
+            letter-spacing: 0.02em;
+            margin-top: 12px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(192, 1, 0, 0.35);
+            transition: transform .1s ease, box-shadow .15s ease, filter .15s ease;
+        }
+
+        .btn-valider:hover { filter: brightness(1.05); }
+        .btn-valider:active { transform: scale(0.985); }
+
+        .btn-valider:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ============================================================
+           MODALES
+           ============================================================ */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(18, 21, 43, 0.55);
+            backdrop-filter: blur(2px);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            color: var(--ink);
+            margin: 9% auto 0;
+            padding: 26px;
+            width: 360px;
+            border-radius: 18px;
+            position: relative;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            animation: modal-in .18s ease;
+        }
+
+        @keyframes modal-in {
+            from { opacity: 0; transform: translateY(8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-content h3, .modal-content h2 {
+            margin-top: 0;
+            font-weight: 700;
+        }
+
+        .modal-content p { color: var(--ink-soft); }
+
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            cursor: pointer;
+            font-size: 22px;
+            color: var(--ink-soft);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s ease;
+        }
+
+        .close-btn:hover { background: var(--surface-alt); }
+
+        .qty-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            margin: 22px 0;
+        }
+
+        .btn-qty {
+            width: 52px;
+            height: 52px;
+            font-size: 22px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 12px;
+            border: none;
+            background: var(--navy-900);
+            color: white;
+            font-family: inherit;
+            transition: transform .1s ease, background .15s ease;
+        }
+
+        .btn-qty:hover { background: var(--navy-800); }
+        .btn-qty:active { transform: scale(0.93); }
+
+        #m-qty-val {
+            width: 64px;
+            font-size: 1.5em;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            text-align: center;
+            border: 1.5px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 0;
+        }
+
+        .btn-primary-modal {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(180deg, var(--red-500), var(--red-600));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: inherit;
+            font-size: 15px;
+            box-shadow: 0 8px 20px rgba(192, 1, 0, 0.28);
+        }
+
+        .btn-primary-modal:hover { filter: brightness(1.05); }
+
+        #m-reduction-pwd {
+            width: 100%;
+            padding: 13px;
+            font-size: 16px;
+            font-family: inherit;
+            border: 1.5px solid var(--line);
+            border-radius: 10px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+        #m-reduction-pwd:focus {
+            outline: none;
+            border-color: var(--navy-800);
+            box-shadow: 0 0 0 3px rgba(38, 44, 104, 0.12);
+        }
+
+        #m-reduction-error {
+            color: var(--red-600);
+            font-weight: 600;
+            display: none;
+            margin: 0 0 15px 0;
+            font-size: 0.88em;
+        }
+
+        #confirm-total {
+            font-weight: 700;
+            font-size: 1.6em;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--navy-900);
+            margin: 4px 0 16px;
+        }
+
+        #confirm-list {
+            text-align: left;
+            margin: 4px 0 18px;
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            background: var(--surface-alt);
+            border-radius: 10px;
+            padding: 12px 14px;
+            line-height: 1.7;
+        }
+
+        #confirm-list hr {
+            border: none;
+            border-top: 1px dashed var(--line);
+            margin: 6px 0;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .confirm-actions button {
+            flex: 1;
+            padding: 14px;
+            cursor: pointer;
+            border-radius: 12px;
+            font-weight: 700;
+            font-family: inherit;
+            font-size: 14.5px;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: var(--surface-alt);
+            color: var(--ink);
+            border: 1.5px solid var(--line) !important;
+        }
+
+        .btn-cancel:hover { background: var(--line); }
+
+        .btn-confirm-payer {
+            background: linear-gradient(180deg, var(--red-500), var(--red-600));
+            color: white;
+            box-shadow: 0 8px 20px rgba(192, 1, 0, 0.3);
+        }
+
+        .btn-confirm-payer:hover { filter: brightness(1.05); }
+        .btn-confirm-payer:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Barre du tiroir panier (uniquement visible sur mobile) */
+        .sidebar-toggle-bar {
+            display: none;
+        }
+
+        /* ============================================================
+           FIDÉLITÉ
+           ============================================================ */
+        .fidelite-search-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .fidelite-search-row input {
+            flex: 1;
+            padding: 11px 13px;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14.5px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .fidelite-search-row button {
+            width: auto;
+            flex-shrink: 0;
+            padding: 11px 15px;
+            background: rgba(255,255,255,0.1);
+            border: 1.5px solid rgba(255,255,255,0.25);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: inherit;
+        }
+
+        .fidelite-search-row button:hover { background: rgba(255,255,255,0.18); }
+
+        /* Liste déroulante d'autocomplétion (recherche par téléphone ou nom) */
+        .fidelite-search-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .fidelite-suggestions {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--navy-900);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            box-shadow: var(--shadow-lg);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+
+        .fidelite-suggestions.open { display: block; }
+
+        .fidelite-suggestion-item {
+            padding: 10px 13px;
+            cursor: pointer;
+            font-size: 0.85em;
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fidelite-suggestion-item:last-child { border-bottom: none; }
+        .fidelite-suggestion-item:hover { background: rgba(255,255,255,0.1); }
+        .fidelite-suggestion-item .fs-tel { font-family: 'IBM Plex Mono', monospace; color: rgba(255,255,255,0.55); font-size: 0.9em; }
+        .fidelite-suggestion-empty { padding: 10px 13px; font-size: 0.82em; color: rgba(255,255,255,0.45); }
+
+        .fidelite-active {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.09);
+            color: white;
+            padding: 12px 13px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 0.88em;
+        }
+
+        .fidelite-active .fid-name {
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        .fidelite-active .fid-points {
+            color: #6CF089;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+        }
+
+        .fidelite-points-row {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .fidelite-points-row input {
+            flex: 1;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13.5px;
+        }
+
+        .fidelite-points-row button {
+            border: none;
+            border-radius: 8px;
+            background: var(--red-600);
+            color: white;
+            font-weight: 700;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .fidelite-warranty-note {
+            margin-top: 8px;
+            font-size: 0.82em;
+            color: rgba(255,255,255,0.65);
+        }
+
+        .fidelite-active .btn-del {
+            float: right;
+        }
+
+        #fidelite-creation-tel,
+        #fidelite-creation-nom,
+        #fidelite-creation-prenom {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 10px;
+            border: 1.5px solid var(--line);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* ============================================================
+           ADAPTATION MOBILE / TABLETTE
+           - En dessous de 900px : le catalogue passe en pleine largeur
+             et la caisse (panier) devient un tiroir accroché en bas
+             de l'écran, qu'on peut ouvrir/fermer en tapant dessus.
+           - Cibles tactiles agrandies, modales adaptées à l'écran,
+             police des champs à 16px pour éviter le zoom auto iOS.
+           ============================================================ */
+        @media (max-width: 900px) {
+            html, body { height: 100%; }
+
+            body {
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .catalog-section {
+                flex: 1 1 auto;
+                width: 100%;
+                box-sizing: border-box;
+                padding: 16px 14px 96px;
+                height: auto;
+            }
+
+            .search-container {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .search-field { flex-basis: 100%; }
+
+            #search {
+                font-size: 16px;
+                padding: 13px 14px 13px 42px;
+            }
+
+            .btn-refresh {
+                padding: 11px 14px;
+                font-size: 13.5px;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 10px;
+            }
+
+            .item { padding: 10px 9px 9px; }
+            .item-img-wrap { height: 66px; }
+
+            /* Le panier devient un tiroir fixé en bas de l'écran */
+            .sidebar {
+                position: fixed;
+                left: 0; right: 0; bottom: 0;
+                width: 100%;
+                min-width: 0;
+                max-width: none;
+                height: auto;
+                max-height: 88vh;
+                box-sizing: border-box;
+                border-radius: 20px 20px 0 0;
+                box-shadow: 0 -10px 30px rgba(0,0,0,0.35);
+                z-index: 800;
+                padding: 0 18px 18px;
+                transform: translateY(calc(100% - 68px));
+                transition: transform 0.28s ease;
+                overflow: hidden;
+            }
+
+            .sidebar.open { transform: translateY(0); }
+
+            .sidebar-toggle-bar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                height: 68px;
+                margin: 0 -18px;
+                padding: 0 18px;
+                cursor: pointer;
+                flex-shrink: 0;
+                touch-action: manipulation;
+                position: relative;
+            }
+
+            .sidebar-toggle-bar .drag-handle {
+                width: 40px;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.5);
+                border-radius: 2px;
+                position: absolute;
+                top: 9px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .sidebar-toggle-bar .toggle-total {
+                font-size: 1.15em;
+                font-weight: 700;
+                font-family: 'IBM Plex Mono', monospace;
+                color: #6CF089;
+            }
+
+            .sidebar-toggle-bar .toggle-hint {
+                font-size: 0.85em;
+                opacity: 0.85;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .sidebar-toggle-bar .toggle-arrow {
+                display: inline-block;
+                transition: transform 0.28s ease;
+            }
+
+            .sidebar.open .toggle-arrow { transform: rotate(180deg); }
+
+            .sidebar-body {
+                overflow-y: auto;
+                max-height: calc(88vh - 68px);
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .brand-row { display: none; }
+            #datetime { display: none; }
+
+            select#salarie-select,
+            select.mode-paiement,
+            .salarie-box { font-size: 16px; }
+
+            #cart { max-height: 28vh; }
+
+            .btn-valider {
+                padding: 17px;
+                font-size: 1.05em;
+                position: sticky;
+                bottom: 0;
+            }
+
+            .modal-content {
+                width: 92vw;
+                max-width: 380px;
+                margin: 16vh auto 0;
+                padding: 22px;
+                box-sizing: border-box;
+            }
+
+            .btn-qty { width: 56px; height: 56px; font-size: 24px; }
+            #m-qty-val { font-size: 1.5em !important; }
+        }
+
+        @media (max-width: 420px) {
+            .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="main-nav">
+        <a href="index.html" class="nav-brand">
+            <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+            <span class="nav-brand-text">Limited Gasoline</span>
+        </a>
+        <span class="nav-sep"></span>
+        <div class="nav-links">
+            <a href="index.html" class="nav-home">Accueil</a>
+            <a href="Planning.html">Planning</a>
+            <a href="Caisse%20Enregistreuse.html" class="active">Caisse Enregistreuse</a>
+            <a href="Ship%20From%20Store.html">Ship From Store</a>
+            <a href="Dashboard.html">Dashboard</a>
+            <a href="Fast%20Fashion.html">Fast Fashion</a>
+            <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+        </div>
+        <a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none; color: var(--ink); text-decoration: none; font-weight: 600;">⚙️ Config</a>
+        <button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚸 Déconnexion</button>
+    </nav>
+
+    <div class="page-shell split">
+        <section class="catalog-section">
+        <div class="topbar">
+            <div class="search-container">
+                <div class="search-field">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="search" placeholder="Rechercher un produit..." onkeyup="render()">
+                </div>
+                <button class="btn-refresh" id="btn-refresh" onclick="handleManualRefresh()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Actualiser
+                </button>
+            </div>
+            <div class="sync-row">
+                <span class="sync-dot" id="sync-dot"></span>
+                <span class="sync-label" id="sync-label">Synchro auto activée</span>
+            </div>
+        </div>
+        <div id="catalog-content"></div>
+    </section>
+
+    <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle-bar" id="sidebar-toggle-bar" onclick="toggleSidebar()">
+                <span class="drag-handle"></span>
+                <span class="toggle-total" id="toggle-total">0 $</span>
+                <span class="toggle-hint"><span id="toggle-count">Panier vide</span> <span class="toggle-arrow">▲</span></span>
+            </div>
+            <div class="sidebar-body">
+            <div class="brand-row">
+                <div class="brand-mark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                </div>
+                <div>
+                    <p class="brand-title">Caisse LTD</p>
+                    <p class="brand-sub">Point de vente</p>
+                </div>
+            </div>
+
+            <div id="datetime"></div>
+
+            <p class="field-label">Salarié</p>
+            <div class="select-wrap">
+                <select id="salarie-select" class="mode-paiement" onchange="updateSalarieInfo()">
+                    <option value="">-- Choisir salarié --</option>
+                </select>
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+
+            <div class="salarie-box">
+                <div class="fn-icon">💼</div>
+                <div class="fn-text">
+                    <strong>Fonction</strong>
+                    <span id="salarie-info">Aucun</span>
+                </div>
+            </div>
+
+            <p class="field-label">Mode de paiement</p>
+            <div class="select-wrap">
+                <select id="paiement-select" class="mode-paiement">
+                    <option value="Carte">💳 Carte</option>
+                    <option value="Espèce">💵 Espèce</option>
+                </select>
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+
+            <button class="btn-remise" id="btn-remise" onclick="ouvrirReduction()">🏷️ Appliquer une réduction (-15%)</button>
+
+            <p class="field-label">Carte fidélité</p>
+            <div class="fidelite-search-wrap">
+                <div class="fidelite-search-row">
+                    <input type="tel" id="fidelite-tel" placeholder="Téléphone ou nom du client"
+                        oninput="afficherSuggestionsFidelite(this.value)"
+                        onfocus="afficherSuggestionsFidelite(this.value)"
+                        onblur="setTimeout(masquerSuggestionsFidelite, 150)">
+                    <button id="btn-fidelite-recherche" onclick="rechercherFidelite()">🔍</button>
+                </div>
+                <div id="fidelite-suggestions" class="fidelite-suggestions"></div>
+            </div>
+            <div id="fidelite-box"></div>
+
+            <div id="cart"></div>
+
+            <div class="total-panel">
+                <span class="total-label">TOTAL</span>
+                <div id="total">0 $</div>
+            </div>
+            <button class="btn-valider" id="btn-valider" onclick="ouvrirConfirmation()">Valider le paiement</button>
+        </div>
+    </aside>
+    </div>
+
+    <!-- Modale Quantité -->
+    <div id="m-qty" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('m-qty').style.display='none'">×</span>
+            <h3 id="m-name" style="margin-top:0;"></h3>
+            <div class="qty-controls">
+                <button class="btn-qty" onclick="changeQty(-1)">−</button>
+                <input type="number" id="m-qty-val" value="1" min="1">
+                <button class="btn-qty" onclick="changeQty(1)">+</button>
+            </div>
+            <button class="btn-primary-modal" onclick="confirmAdd()">Ajouter au panier</button>
+        </div>
+    </div>
+
+    <!-- Modale Réduction (mot de passe) -->
+    <div id="m-reduction" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('m-reduction').style.display='none'">×</span>
+            <h3 style="margin-top:0;">Réduction -15%</h3>
+            <p>Entrez le mot de passe pour appliquer la réduction.</p>
+            <input type="password" id="m-reduction-pwd" placeholder="Mot de passe">
+            <p id="m-reduction-error">Mot de passe incorrect.</p>
+            <button class="btn-primary-modal" onclick="validerReduction()">Valider</button>
+        </div>
+    </div>
+
+    <!-- Modale Création Carte Fidélité -->
+    <div id="m-fidelite-creation" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('m-fidelite-creation').style.display='none'">×</span>
+            <h3 style="margin-top:0;">🎫 Créer une carte fidélité</h3>
+            <p>Aucune carte trouvée pour ce numéro. Créez-en une.</p>
+            <input type="tel" id="fidelite-creation-tel" placeholder="Téléphone">
+            <input type="text" id="fidelite-creation-nom" placeholder="Nom">
+            <input type="text" id="fidelite-creation-prenom" placeholder="Prénom">
+            <button class="btn-primary-modal" onclick="validerCreationFidelite()">Créer la carte</button>
+        </div>
+    </div>
+
+    <!-- Modale Confirmation (Double Validation) -->
+    <div id="m-confirm" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-top:0;">Confirmer le paiement</h2>
+            <p style="margin:0; font-size:0.8em; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); font-weight:600;">Total à régler</p>
+            <p id="confirm-total"></p>
+            <div id="confirm-list"></div>
+            <div class="confirm-actions">
+                <button class="btn-cancel" onclick="document.getElementById('m-confirm').style.display='none'">Annuler</button>
+                <button id="btn-confirm-payer" class="btn-confirm-payer" onclick="validerPaiement()">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1527082052216946708/mFJHSb_4QkOi912C9zaH9rTWgqeJP31MrBFmLNF8gt-2OiLKqp9pWjYBmiJsuOSlmOhf';
+        const STOCK_POLL_MS = 10000; // Intervalle de synchronisation automatique du stock (10 secondes)
+
+        // Formatage monétaire cohérent (séparateur de milliers + symbole $)
+        function fmt(n) {
+            return Math.round(n).toLocaleString('fr-FR') + ' $';
+        }
+
+        // ============================================================
+        // RÉDUCTION MANUELLE (protégée par mot de passe)
+        // ------------------------------------------------------------
+        // Réduction de 15% applicable sur le sous-total (après offres
+        // groupées), déclenchée par le vendeur via un mot de passe.
+        // ============================================================
+        const REMISE_PASSWORD = "bumpadia";
+        const TAUX_REMISE = 0.15;
+        let remiseActive = false;
+
+        function ouvrirReduction() {
+            document.getElementById('m-reduction-pwd').value = '';
+            document.getElementById('m-reduction-error').style.display = 'none';
+            document.getElementById('m-reduction').style.display = 'block';
+            setTimeout(() => document.getElementById('m-reduction-pwd').focus(), 100);
+        }
+
+        function validerReduction() {
+            const pwd = document.getElementById('m-reduction-pwd').value;
+            if (pwd === REMISE_PASSWORD) {
+                remiseActive = true;
+                document.getElementById('m-reduction').style.display = 'none';
+                document.getElementById('btn-remise').style.display = 'none';
+                updateCart();
+            } else {
+                document.getElementById('m-reduction-error').style.display = 'block';
+            }
+        }
+
+        function retirerReduction() {
+            remiseActive = false;
+            document.getElementById('btn-remise').style.display = 'block';
+            updateCart();
+        }
+
+        document.getElementById('m-reduction-pwd').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') validerReduction();
+        });
+
+        // ============================================================
+        // CARTE FIDÉLITÉ
+        // ------------------------------------------------------------
+        // Recherche/création d'un client par téléphone, application de
+        // points en réduction sur le panier (valeur indicative ici :
+        // le montant réel est toujours recalculé et plafonné côté
+        // serveur dans validerVenteWeb, jamais fait confiance au
+        // navigateur). L'assurance 7 jours sur l'électronique est créée
+        // automatiquement côté serveur dès qu'un client est associé à
+        // la vente.
+        // ============================================================
+        // Valeurs par défaut, écrasées au chargement (et toutes les 10s) par les
+        // vraies valeurs de l'onglet CONFIG — pour que la caisse reflète tout
+        // changement fait dans le Sheet (SEUIL_CHEQUE_POINTS, VALEUR_CHEQUE_FIDELITE,
+        // ASSURANCE_PRIX_FIXE) sans jamais avoir besoin de republier le code.
+        let ASSURANCE_PRIX_AFFICHAGE = 15;
+        let SEUIL_CHEQUE_AFFICHAGE = 200;
+        let VALEUR_CHEQUE_AFFICHAGE = 100;
+
+        // Construit une map { CLE: VALEUR } à partir des lignes brutes de l'onglet
+        // CONFIG (format gviz), et met à jour les constantes d'affichage locales.
+        function appliquerConfigAffichage(rows) {
+            const map = {};
+            rows.forEach(r => {
+                if (r.c[0] && r.c[0].v != null && r.c[1] && r.c[1].v != null) {
+                    map[String(r.c[0].v).trim()] = r.c[1].v;
+                }
+            });
+            if (map.ASSURANCE_PRIX_FIXE != null && !isNaN(Number(map.ASSURANCE_PRIX_FIXE))) {
+                ASSURANCE_PRIX_AFFICHAGE = Number(map.ASSURANCE_PRIX_FIXE);
+            }
+            if (map.SEUIL_CHEQUE_POINTS != null && !isNaN(Number(map.SEUIL_CHEQUE_POINTS))) {
+                SEUIL_CHEQUE_AFFICHAGE = Number(map.SEUIL_CHEQUE_POINTS);
+            }
+            if (map.VALEUR_CHEQUE_FIDELITE != null && !isNaN(Number(map.VALEUR_CHEQUE_FIDELITE))) {
+                VALEUR_CHEQUE_AFFICHAGE = Number(map.VALEUR_CHEQUE_FIDELITE);
+            }
+        }
+        let clientFidelite = null; // { telephone, nom, prenom, points, totalDepense, totalPointsGagnes, palier, chequesDisponibles, valeurCheque, seuilCheque, remisePctEnAttente, articleOffertEnAttente }
+        let chequesAUtiliser = 0;
+        let utiliserRemisePalier = false; // décidé par le vendeur via la case à cocher, jamais automatique
+
+        // L'assurance appareil électronique est une souscription PAYANTE et
+        // VOLONTAIRE, réservée aux clients identifiés par leur carte fidélité.
+        // Elle n'est jamais appliquée automatiquement : le vendeur doit cocher
+        // la case sur la ligne du panier concernée pour l'ajouter au total.
+        function toggleAssurance(i) {
+            if (!clientFidelite) return;
+            cart[i].assurance = !cart[i].assurance;
+            updateCart();
+        }
+
+        // L'article offert (récompense de palier, hors Jardin) ne peut être
+        // appliqué qu'à UNE seule ligne du panier à la fois : cocher une ligne
+        // décoche automatiquement les autres.
+        function toggleArticleOffert(i) {
+            if (!clientFidelite || !clientFidelite.articleOffertEnAttente) return;
+            const etaitCoche = !!cart[i].articleOffert;
+            cart.forEach(item => { item.articleOffert = false; });
+            cart[i].articleOffert = !etaitCoche;
+            updateCart();
+        }
+
+        async function rechercherFidelite() {
+            const tel = document.getElementById('fidelite-tel').value.trim();
+            if (!tel) { alert("Entrez un numéro de téléphone."); return; }
+            const btn = document.getElementById('btn-fidelite-recherche');
+            btn.disabled = true;
+            const res = await envoyerVersLTDSystem({ type: "fideliteRecherche", telephone: tel });
+            btn.disabled = false;
+            if (res.success && res.found) {
+                clientFidelite = {
+                    telephone: res.telephone, nom: res.nom, prenom: res.prenom,
+                    points: res.points, totalDepense: res.totalDepense,
+                    totalPointsGagnes: res.totalPointsGagnes, palier: res.palier,
+                    chequesDisponibles: res.chequesDisponibles, valeurCheque: res.valeurCheque, seuilCheque: res.seuilCheque,
+                    remisePctEnAttente: res.remisePctEnAttente, articleOffertEnAttente: res.articleOffertEnAttente
+                };
+                chequesAUtiliser = 0;
+                utiliserRemisePalier = false;
+                afficherClientFidelite();
+            } else {
+                clientFidelite = null;
+                document.getElementById('fidelite-creation-tel').value = tel;
+                document.getElementById('fidelite-creation-nom').value = '';
+                document.getElementById('fidelite-creation-prenom').value = '';
+                document.getElementById('m-fidelite-creation').style.display = 'block';
+            }
+        }
+
+        function afficherClientFidelite() {
+            const box = document.getElementById('fidelite-box');
+            if (!clientFidelite) {
+                box.innerHTML = '';
+                updateCart();
+                return;
+            }
+            let extra = '';
+            if (clientFidelite.chequesDisponibles > 0) {
+                extra += `
+                    <div class="fidelite-points-row" style="margin-top:6px;">
+                        <input type="number" id="fidelite-cheques-input" min="0" max="${clientFidelite.chequesDisponibles}" value="${chequesAUtiliser || ''}" placeholder="Nb chèques (max ${clientFidelite.chequesDisponibles})">
+                        <button onclick="appliquerChequesFidelite()">OK</button>
+                    </div>
+                    <div class="fidelite-warranty-note">🎟️ ${clientFidelite.chequesDisponibles} chèque(s) fidélité disponible(s) (${clientFidelite.valeurCheque} $ chacun, ${clientFidelite.seuilCheque} pts/chèque)</div>`;
+            }
+            if (clientFidelite.remisePctEnAttente > 0) {
+                extra += `
+                    <label style="display:block; font-size:0.85em; font-weight:600; color:#6CF089; cursor:pointer; margin-top:6px;">
+                        <input type="checkbox" ${utiliserRemisePalier ? 'checked' : ''} onchange="toggleRemisePalier()" style="vertical-align:middle;">
+                        🎁 Utiliser la remise de palier (${clientFidelite.remisePctEnAttente}%)
+                    </label>`;
+            }
+            if (clientFidelite.articleOffertEnAttente) {
+                extra += `<div class="fidelite-warranty-note">🎁 Article offert disponible — cochez-le sur une ligne du panier (hors Jardin)</div>`;
+            }
+            box.innerHTML = `
+                <div class="fidelite-active">
+                    <span class="btn-del" onclick="retirerFidelite()">✕</span>
+                    <div class="fid-name">${clientFidelite.prenom} ${clientFidelite.nom} — ${clientFidelite.palier}</div>
+                    <div class="fid-points">${clientFidelite.points} pts disponibles (${clientFidelite.totalPointsGagnes} pts cumulés)</div>
+                    <div class="fidelite-warranty-note">🛡️ Assurance 7 jours disponible (+${ASSURANCE_PRIX_AFFICHAGE} $/appareil électronique) — à cocher sur chaque ligne du panier si le client la souhaite</div>
+                    ${extra}
+                </div>`;
+            updateCart();
+        }
+
+        function appliquerChequesFidelite() {
+            const val = parseInt(document.getElementById('fidelite-cheques-input').value) || 0;
+            chequesAUtiliser = Math.max(0, Math.min(val, clientFidelite.chequesDisponibles));
+            updateCart();
+        }
+
+        // La remise de palier (en attente sur la carte du client) est une
+        // décision du vendeur : cocher la case l'active pour cette vente.
+        function toggleRemisePalier() {
+            utiliserRemisePalier = !utiliserRemisePalier;
+            updateCart();
+        }
+
+        function retirerFidelite() {
+            clientFidelite = null;
+            chequesAUtiliser = 0;
+            utiliserRemisePalier = false;
+            cart.forEach(item => { item.assurance = false; item.articleOffert = false; }); // nécessitent une carte fidélité active
+            document.getElementById('fidelite-tel').value = '';
+            afficherClientFidelite();
+        }
+
+        async function validerCreationFidelite() {
+            const tel = document.getElementById('fidelite-creation-tel').value.trim();
+            const nom = document.getElementById('fidelite-creation-nom').value.trim();
+            const prenom = document.getElementById('fidelite-creation-prenom').value.trim();
+            if (!tel || !nom || !prenom) { alert("Tous les champs sont requis."); return; }
+            const res = await envoyerVersLTDSystem({ type: "fideliteCreer", telephone: tel, nom: nom, prenom: prenom });
+            if (res.success) {
+                clientFidelite = {
+                    telephone: res.telephone, nom: res.nom, prenom: res.prenom,
+                    points: 0, totalDepense: 0, totalPointsGagnes: 0, palier: res.palier || "Standard",
+                    chequesDisponibles: 0, valeurCheque: res.valeurCheque, seuilCheque: res.seuilCheque,
+                    remisePctEnAttente: 0, articleOffertEnAttente: false
+                };
+                chequesAUtiliser = 0;
+                utiliserRemisePalier = false;
+                document.getElementById('m-fidelite-creation').style.display = 'none';
+                document.getElementById('fidelite-tel').value = tel;
+                afficherClientFidelite();
+            } else {
+                alert("❌ " + (res.error || "Création impossible."));
+            }
+        }
+
+        // ============================================================
+        // OFFRES GROUPÉES (BUNDLES)
+        // ------------------------------------------------------------
+        // Les offres sont chargées automatiquement depuis l'onglet
+        // Google Sheet "🎁 Offres" (voir buildBundlesFromSheet et
+        // l'appel dans init()). Pour ajouter/modifier/supprimer une
+        // offre, il suffit d'éditer cet onglet — pas besoin de toucher
+        // au code.
+        //
+        // Format attendu de l'onglet "🎁 Offres" :
+        // Colonne A : Nom de l'offre
+        // Colonne B : Prix de l'offre
+        // Colonnes C,D : Produit 1 / Qté 1
+        // Colonnes E,F : Produit 2 / Qté 2
+        // Colonnes G,H : Produit 3 / Qté 3
+        // ... (autant de paires Produit/Qté que nécessaire)
+        // ============================================================
+        let BUNDLES = [];
+
+        // Construit le tableau BUNDLES à partir des lignes brutes de
+        // l'onglet "🎁 Offres" (format gviz, comme salarieData/data).
+        function buildBundlesFromSheet(rows) {
+            const bundles = [];
+            rows.forEach(r => {
+                if (!r.c[0] || !r.c[0].v || !r.c[1] || r.c[1].v === null || r.c[1].v === '') return;
+                const label = r.c[0].v;
+                const price = Number(r.c[1].v);
+                const items = [];
+                for (let idx = 2; idx < r.c.length - 1; idx += 2) {
+                    const prodCell = r.c[idx];
+                    const qtyCell = r.c[idx + 1];
+                    if (prodCell && prodCell.v && qtyCell && qtyCell.v) {
+                        items.push({ name: prodCell.v, qty: Number(qtyCell.v) });
+                    }
+                }
+                if (items.length > 0) bundles.push({ label, items, price });
+            });
+            return bundles;
+        }
+
+        // Construit le tableau BUNDLES à partir des lignes Supabase de la
+        // table "offres" (colonnes : nom, statut, prix_offre, produits_json).
+        // produits_json est un tableau JSONB : [{ id, nom, qty }, ...]
+        // Seules les offres au statut "actif" sont prises en compte, et la
+        // meilleure combinaison est ensuite déterminée automatiquement par
+        // calculerOffres() à chaque mise à jour du panier.
+        function buildBundlesFromOffers(offers) {
+            if (!Array.isArray(offers)) return [];
+            const bundles = [];
+            offers.forEach(offer => {
+                if (!offer || !offer.nom) return;
+                if (offer.statut && offer.statut !== 'actif') return;
+                const price = Number(offer.prix_offre || 0);
+                let produitsJson = offer.produits_json;
+                if (typeof produitsJson === 'string') {
+                    try { produitsJson = JSON.parse(produitsJson); } catch (e) { produitsJson = []; }
+                }
+                if (!Array.isArray(produitsJson) || produitsJson.length === 0) return;
+                const items = produitsJson
+                    .filter(p => p && p.nom && p.qty)
+                    .map(p => ({ name: p.nom, qty: Number(p.qty) || 1 }));
+                if (items.length > 0) bundles.push({ label: offer.nom, items, price });
+            });
+            return bundles;
+        }
+
+        // Normalise un nom de produit pour la comparaison (insensible à la
+        // casse et aux espaces superflus), afin d'éviter les offres qui ne
+        // se déclenchent pas à cause d'une différence "Pot Vide" / "Pot vide".
+        function normName(s) {
+            return (s || '').toString().trim().toLowerCase();
+        }
+
+        // Calcule les offres applicables au panier actuel.
+        // Retourne { totalDiscount, appliedBundles } où appliedBundles
+        // est une liste de { label, times, discount } pour affichage.
+        function calculerOffres(cartArr) {
+            // Quantité totale par nom de produit (normalisé) dans le panier
+            const qtyMap = {};
+            cartArr.forEach(item => {
+                const key = normName(item.name);
+                qtyMap[key] = (qtyMap[key] || 0) + item.qty;
+            });
+
+            let totalDiscount = 0;
+            const appliedBundles = [];
+
+            BUNDLES.forEach(bundle => {
+                // Combien de fois peut-on composer cette offre avec le stock du panier ?
+                let maxTimes = Infinity;
+                bundle.items.forEach(req => {
+                    const key = normName(req.name);
+                    const dispo = qtyMap[key] || 0;
+                    maxTimes = Math.min(maxTimes, Math.floor(dispo / req.qty));
+                });
+                if (!isFinite(maxTimes)) maxTimes = 0;
+
+                if (maxTimes > 0) {
+                    // Prix normal des articles consommés par l'offre (au prix unitaire réellement dans le panier)
+                    let prixNormal = 0;
+                    bundle.items.forEach(req => {
+                        const key = normName(req.name);
+                        const cartItem = cartArr.find(i => normName(i.name) === key);
+                        if (cartItem) prixNormal += cartItem.price * req.qty;
+                    });
+                    prixNormal = prixNormal * maxTimes;
+                    const prixOffre = bundle.price * maxTimes;
+                    const remise = prixNormal - prixOffre;
+
+                    // On n'applique l'offre que si elle est réellement avantageuse
+                    if (remise > 0) {
+                        totalDiscount += remise;
+                        appliedBundles.push({ label: bundle.label, times: maxTimes, discount: remise });
+                        // On "consomme" les quantités utilisées pour ne pas les recompter
+                        // dans une autre offre potentielle.
+                        bundle.items.forEach(req => {
+                            const key = normName(req.name);
+                            qtyMap[key] -= req.qty * maxTimes;
+                        });
+                    }
+                }
+            });
+
+            return { totalDiscount, appliedBundles };
+        }
+
+        // Calcule le total final du panier en cumulant : offres groupées,
+        // réduction manuelle de 15% (si activée), puis les récompenses
+        // fidélité DÉCIDÉES par le vendeur (article offert coché, remise de
+        // palier cochée, chèques choisis) — jamais appliquées automatiquement.
+        // Tous ces montants sont indicatifs ; le serveur recalcule et plafonne
+        // les vraies valeurs au moment du paiement.
+        function calculerTotalFinal(cartArr) {
+            const totalBrut = cartArr.reduce((s, i) => s + i.price * i.qty, 0);
+            const { totalDiscount, appliedBundles } = calculerOffres(cartArr);
+            const sousTotalApresOffres = totalBrut - totalDiscount;
+            let remiseMontant = 0;
+            if (remiseActive) {
+                remiseMontant = sousTotalApresOffres * TAUX_REMISE;
+            }
+            let reste = sousTotalApresOffres - remiseMontant;
+
+            // 1) Article offert : 1 unité de la ligne cochée (hors Jardin)
+            let reductionArticleOffert = 0;
+            if (clientFidelite && clientFidelite.articleOffertEnAttente) {
+                const ligneCible = cartArr.find(item => item.articleOffert && item.categorie !== 'Jardin');
+                if (ligneCible) {
+                    reductionArticleOffert = Math.min(ligneCible.price, reste);
+                    reste -= reductionArticleOffert;
+                }
+            }
+
+            // 2) Remise de palier en pourcentage, si le vendeur choisit de l'utiliser
+            let reductionPourcentage = 0;
+            if (clientFidelite && utiliserRemisePalier && clientFidelite.remisePctEnAttente > 0) {
+                reductionPourcentage = reste * (clientFidelite.remisePctEnAttente / 100);
+                reste -= reductionPourcentage;
+            }
+
+            // 3) Chèques fidélité choisis par le vendeur
+            let reductionCheques = 0;
+            if (clientFidelite && chequesAUtiliser > 0) {
+                const valeurCheque = clientFidelite.valeurCheque || VALEUR_CHEQUE_AFFICHAGE;
+                reductionCheques = Math.min(chequesAUtiliser * valeurCheque, reste);
+                reste -= reductionCheques;
+            }
+
+            // Assurance : coût ADDITIF, uniquement sur les lignes explicitement
+            // cochées par le vendeur (jamais automatique, jamais gratuite).
+            let totalAssurance = 0;
+            if (clientFidelite) {
+                cartArr.forEach(item => {
+                    if (item.assurance) totalAssurance += ASSURANCE_PRIX_AFFICHAGE * item.qty;
+                });
+            }
+
+            const totalFinal = reste + totalAssurance;
+            return {
+                totalBrut, totalDiscount, appliedBundles, remiseMontant,
+                reductionArticleOffert, reductionPourcentage, reductionCheques,
+                totalAssurance, totalFinal
+            };
+        }
+        // ============================================================
+
+        let data = [], cart = [], salarieData = [], currentProduct = null;
+        let fideliteData = []; // liste légère { tel, nom, prenom, points } pour l'autocomplétion, resynchronisée toutes les 10s
+        let stockPollInterval = null;
+        let isQtyModalOpen = false;
+
+        // Ouvre/ferme le tiroir panier (mobile uniquement, sans effet sur desktop)
+        function toggleSidebar(forceOpen) {
+            const sidebar = document.getElementById('sidebar');
+            if (typeof forceOpen === 'boolean') {
+                sidebar.classList.toggle('open', forceOpen);
+            } else {
+                sidebar.classList.toggle('open');
+            }
+        }
+
+        function changeQty(delta) {
+            let input = document.getElementById('m-qty-val');
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+        }
+
+        function ouvrirConfirmation() {
+            const salarie = document.getElementById('salarie-select').value;
+
+            if (cart.length === 0) {
+                alert("Le panier est vide !");
+                return;
+            }
+
+            if (!salarie || salarie === "") {
+                alert("Veuillez sélectionner un salarié avant de valider.");
+                return;
+            }
+
+            const { appliedBundles, remiseMontant, reductionArticleOffert, reductionPourcentage, reductionCheques, totalAssurance, totalFinal } = calculerTotalFinal(cart);
+            document.getElementById('confirm-total').innerText = fmt(totalFinal);
+            const listDiv = document.getElementById('confirm-list');
+            let html = cart.map(item => `<div>${item.qty}x ${item.name}${item.assurance ? ' 🛡️' : ''}${item.articleOffert ? ' 🎁' : ''}</div>`).join("");
+            if (appliedBundles.length > 0) {
+                html += `<hr>` + appliedBundles.map(b => `<div style="color:#16693A;">🎁 ${b.label} x${b.times} (−${fmt(b.discount)})</div>`).join("");
+            }
+            if (remiseMontant > 0) {
+                html += `<hr><div style="color:var(--red-600);">🏷️ Réduction -15% (−${fmt(remiseMontant)})</div>`;
+            }
+            if (reductionArticleOffert > 0) {
+                html += `<hr><div style="color:#16693A;">🎁 Article offert (−${fmt(reductionArticleOffert)})</div>`;
+            }
+            if (reductionPourcentage > 0) {
+                html += `<hr><div style="color:var(--red-600);">🎁 Remise de palier ${clientFidelite.remisePctEnAttente}% (−${fmt(reductionPourcentage)})</div>`;
+            }
+            if (reductionCheques > 0) {
+                html += `<hr><div style="color:var(--red-600);">🎟️ ${chequesAUtiliser} chèque(s) fidélité (−${fmt(reductionCheques)})</div>`;
+            }
+            if (totalAssurance > 0) {
+                html += `<hr><div style="color:#16693A;">🛡️ Assurance(s) souscrite(s) (+${fmt(totalAssurance)})</div>`;
+            }
+            if (clientFidelite) {
+                html += `<hr><div>👤 ${clientFidelite.prenom} ${clientFidelite.nom} — ${clientFidelite.palier}</div>`;
+            }
+            listDiv.innerHTML = html;
+            document.getElementById('m-confirm').style.display = 'block';
+        }
+
+        setInterval(() => {
+            document.getElementById('datetime').innerText = new Date().toLocaleString('fr-FR');
+        }, 1000);
+
+        async function envoyerVersDiscord(embed) {
+            if (!DISCORD_WEBHOOK) return;
+            try {
+                await fetch(DISCORD_WEBHOOK, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+            } catch (e) {
+                console.error("Erreur Discord :", e);
+            }
+        }
+
+        async function validerPaiement() {
+            const btnConfirm = document.getElementById('btn-confirm-payer');
+            btnConfirm.disabled = true;
+            btnConfirm.innerText = "Envoi en cours...";
+
+            const salarie = document.getElementById('salarie-select').value;
+            const fonction = document.getElementById('salarie-info').innerText;
+            const paiement = document.getElementById('paiement-select').value;
+            const date = new Date().toLocaleString('fr-FR');
+            const { totalBrut, totalDiscount, appliedBundles, remiseMontant, reductionArticleOffert, reductionPourcentage, reductionCheques, totalAssurance, totalFinal } = calculerTotalFinal(cart);
+            const totalRaw = fmt(totalFinal);
+
+            // Total déjà net de remise (offres + réduction 15% + récompenses
+            // fidélité) et brut d'assurance (additive), calculé une seule fois
+            // ici, pour que le script Google n'ait plus besoin (et surtout plus
+            // le droit) de le recalculer lui-même à partir des prix bruts.
+            const totalNet = Math.round(totalFinal);
+
+            const payload = {
+                employe: salarie || "Non renseigné",
+                paiement: paiement,
+                // "assurance" et "articleOffert" ne sont que des INTENTIONS
+                // exprimées par le vendeur : le serveur revalide tout (client
+                // fidélité associé, bon réellement en attente, catégorie
+                // éligible) et recalcule lui-même les montants.
+                produits: cart.map(i => ({ produit: i.name, qte: i.qty, pu: i.price, assurance: !!i.assurance, articleOffert: !!i.articleOffert })),
+                offres: appliedBundles.map(b => ({ offre: b.label, fois: b.times, remise: Math.round(b.discount) })),
+                remiseTotale: Math.round(totalDiscount),
+                reductionEmploye: remiseMontant > 0,
+                reductionEmployeMontant: Math.round(remiseMontant),
+                clientTelephone: clientFidelite ? clientFidelite.telephone : "",
+                // Intentions fidélité : nombre de chèques choisis par le vendeur,
+                // et décision d'utiliser la remise de palier en attente.
+                chequesUtilises: clientFidelite ? chequesAUtiliser : 0,
+                utiliserRemisePalier: clientFidelite ? utiliserRemisePalier : false,
+                totalBrut: Math.round(totalBrut),
+                total: totalNet
+            };
+
+            const resultat = await envoyerVersLTDSystem(payload);
+
+            if (!resultat.success) {
+                alert("❌ Erreur : " + (resultat.error || "envoi impossible."));
+                btnConfirm.disabled = false;
+                btnConfirm.innerText = "Confirmer";
+                return;
+            }
+
+            const itemsText = cart.map(i => `${i.qty}x ${i.name}`).join("\n");
+            let offresText = appliedBundles.length > 0
+                ? appliedBundles.map(b => `🎁 ${b.label} x${b.times} (−${fmt(b.discount)})`).join("\n")
+                : "Aucune";
+            if (remiseMontant > 0) {
+                offresText += (appliedBundles.length > 0 ? "\n" : "") + `🏷️ Réduction -15% (−${fmt(remiseMontant)})`;
+            }
+            if (reductionArticleOffert > 0) {
+                offresText += `\n🎁 Article offert (−${fmt(reductionArticleOffert)})`;
+            }
+            if (reductionPourcentage > 0) {
+                offresText += `\n🎁 Remise de palier (−${fmt(reductionPourcentage)})`;
+            }
+            if (reductionCheques > 0) {
+                offresText += `\n🎟️ Chèques fidélité (−${fmt(reductionCheques)})`;
+            }
+            if (totalAssurance > 0) {
+                offresText += `\n🛡️ Assurance(s) souscrite(s) (+${fmt(totalAssurance)})`;
+            }
+            envoyerVersDiscord({
+                "title": "💳 Nouveau Paiement — " + resultat.numeroFacture,
+                "color": 12622080,
+                "fields": [
+                    { "name": "📅 Date / Heure", "value": date, "inline": false },
+                    { "name": "👤 Salarié", "value": salarie || "Non renseigné", "inline": true },
+                    { "name": "💼 Fonction", "value": fonction || "Aucune", "inline": true },
+                    { "name": "🎫 Client fidélité", "value": clientFidelite ? (clientFidelite.prenom + " " + clientFidelite.nom) : "Aucun", "inline": true },
+                    { "name": "📦 Produits", "value": itemsText || "Aucun article" },
+                    { "name": "🎁 Offres appliquées", "value": offresText },
+                    { "name": "💰 Total", "value": totalRaw || "0 $" }
+                ],
+                "footer": { "text": "Caisse LTD - Site Web" }
+            });
+
+            document.getElementById('m-confirm').style.display = 'none';
+            let msgFinal = "✅ Paiement validé !\nFacture : " + resultat.numeroFacture;
+            if (resultat.totalAssurance > 0) {
+                msgFinal += "\n🛡️ Assurance(s) souscrite(s) : " + fmt(resultat.totalAssurance);
+            }
+            if (clientFidelite && resultat.pointsGagnes != null) {
+                msgFinal += "\n🎫 Points gagnés : +" + resultat.pointsGagnes + " (solde : " + resultat.soldePointsApres + " pts, palier " + resultat.palier + ")";
+            }
+            if (resultat.recompensesObtenues && resultat.recompensesObtenues.length > 0) {
+                msgFinal += "\n🎉 Nouvelle(s) récompense(s) débloquée(s) :\n- " + resultat.recompensesObtenues.join("\n- ");
+            }
+            alert(msgFinal);
+            cart = [];
+            remiseActive = false;
+            clientFidelite = null;
+            chequesAUtiliser = 0;
+            utiliserRemisePalier = false;
+            document.getElementById('fidelite-tel').value = '';
+            afficherClientFidelite();
+            document.getElementById('btn-remise').style.display = 'block';
+            updateCart();
+            init();
+
+            btnConfirm.disabled = false;
+            btnConfirm.innerText = "Confirmer";
+        }
+
+        function handleManualRefresh() {
+            const btn = document.getElementById('btn-refresh');
+            btn.classList.add('spinning');
+            init().finally(() => setTimeout(() => btn.classList.remove('spinning'), 400));
+        }
+
+        async function init() {
+            document.getElementById('catalog-content').innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <span>Chargement du catalogue...</span>
+                </div>`;
+            const [resE, resC, resO, resF, resCfg] = await Promise.all([
+                Promise.reject(new Error('Source historique désactivée')),
+                Promise.reject(new Error('Source historique désactivée')),
+                Promise.reject(new Error('Source historique désactivée')),
+                Promise.reject(new Error('Source historique désactivée')),
+                Promise.reject(new Error('Source historique désactivée'))
+            ]);
+            const [textE, textC, textO, textF, textCfg] = await Promise.all([resE.text(), resC.text(), resO.text(), resF.text(), resCfg.text()]);
+            salarieData = JSON.parse(textE.substring(47, textE.length - 2)).table.rows;
+            data = JSON.parse(textC.substring(47, textC.length - 2)).table.rows;
+            try {
+                const offresRows = JSON.parse(textO.substring(47, textO.length - 2)).table.rows;
+                BUNDLES = buildBundlesFromSheet(offresRows);
+            } catch (e) {
+                console.warn("Onglet '🎁 Offres' introuvable ou vide — aucune offre chargée.", e);
+                BUNDLES = [];
+            }
+            try {
+                const fideliteRows = JSON.parse(textF.substring(47, textF.length - 2)).table.rows;
+                fideliteData = buildFideliteListFromSheet(fideliteRows);
+            } catch (e) {
+                console.warn("Onglet '🎫 Fidélité' introuvable ou vide — autocomplétion fidélité désactivée.", e);
+                fideliteData = [];
+            }
+            try {
+                const configRows = JSON.parse(textCfg.substring(47, textCfg.length - 2)).table.rows;
+                appliquerConfigAffichage(configRows);
+            } catch (e) {
+                console.warn("Onglet 'CONFIG' introuvable ou vide — valeurs d'affichage par défaut conservées.", e);
+            }
+
+            const select = document.getElementById('salarie-select');
+            const previousValue = select.value || localStorage.getItem('salarieName') || '';
+            select.innerHTML = '<option value="">-- Choisir salarié --</option>';
+            salarieData.forEach(r => {
+                if (!r.c[0]) return;
+                const opt = document.createElement('option');
+                opt.value = r.c[0].v; opt.text = r.c[0].v; select.add(opt);
+            });
+            select.value = previousValue;
+            updateSalarieInfo();
+            render();
+
+            // (Re)démarre la synchronisation automatique du stock et des cartes
+            // fidélité en arrière-plan, pour rester à jour entre plusieurs
+            // caissiers utilisant la caisse en même temps.
+            startStockAutoSync();
+        }
+
+        // Construit la liste légère { tel, nom, prenom, points } utilisée pour
+        // l'autocomplétion, à partir des lignes brutes de l'onglet 🎫 Fidélité
+        // (colonnes A Téléphone, B Nom, C Prénom, E Points).
+        function buildFideliteListFromSheet(rows) {
+            return rows
+                .filter(r => r.c[0] && r.c[0].v)
+                .map(r => ({
+                    tel: String(r.c[0].v),
+                    nom: r.c[1] ? r.c[1].v : '',
+                    prenom: r.c[2] ? r.c[2].v : '',
+                    points: r.c[4] ? Number(r.c[4].v) || 0 : 0
+                }));
+        }
+
+        // Lance le polling automatique du stock. Annule un éventuel polling précédent pour éviter les doublons.
+        function startStockAutoSync() {
+            if (stockPollInterval) clearInterval(stockPollInterval);
+            stockPollInterval = setInterval(refreshStockOnly, STOCK_POLL_MS);
+        }
+
+        // Récupère uniquement la feuille Produits et met à jour le stock/prix affichés,
+        // sans toucher au panier en cours, à la recherche tapée, ou au salarié sélectionné.
+        async function refreshStockOnly() {
+            // On évite de rafraîchir pendant que le vendeur choisit une quantité,
+            // pour ne pas lui faire perdre sa saisie en cours.
+            if (isQtyModalOpen) return;
+
+            const syncLabel = document.getElementById('sync-label');
+            syncLabel.innerText = "Synchronisation...";
+            syncLabel.classList.add('syncing');
+
+            try {
+                const resC = await Promise.reject(new Error('Source historique désactivée'));
+                const textC = await resC.text();
+                const newData = JSON.parse(textC.substring(47, textC.length - 2)).table.rows;
+
+                // Met à jour le stock, le prix et le prix promo de chaque produit existant (par nom)
+                // sans remplacer le tableau `data`, pour ne pas casser les références en cours (ex: modale ouverte).
+                let hasChanges = false;
+                newData.forEach(newRow => {
+                    if (!newRow.c[1]) return;
+                    const name = newRow.c[1].v;
+                    const existingRow = data.find(r => r.c[1] && r.c[1].v === name);
+                    if (existingRow) {
+                        const oldStock = existingRow.c[5]?.v;
+                        const newStock = newRow.c[5]?.v;
+                        if (oldStock !== newStock) hasChanges = true;
+                        existingRow.c[5] = newRow.c[5];
+                        existingRow.c[3] = newRow.c[3];
+                        existingRow.c[9] = newRow.c[9];
+                    } else {
+                        // Nouveau produit ajouté dans la feuille depuis le dernier chargement complet
+                        hasChanges = true;
+                    }
+                });
+
+                if (hasChanges) render();
+
+                syncLabel.innerText = "Synchronisé à " + new Date().toLocaleTimeString('fr-FR');
+                syncLabel.classList.remove('syncing');
+            } catch (e) {
+                console.error("Erreur rafraîchissement stock auto :", e);
+                syncLabel.innerText = "⚠️ Échec de synchro";
+                syncLabel.classList.remove('syncing');
+            }
+
+            // Rafraîchit aussi la liste des cartes fidélité (autocomplétion), pour
+            // que les cartes créées par un autre caissier apparaissent rapidement
+            // sans jamais toucher au client actuellement sélectionné à cette caisse.
+            try {
+                const resF = await Promise.reject(new Error('Source historique désactivée'));
+                const textF = await resF.text();
+                const fideliteRows = JSON.parse(textF.substring(47, textF.length - 2)).table.rows;
+                fideliteData = buildFideliteListFromSheet(fideliteRows);
+                // Si une recherche est en cours de saisie, on rafraîchit aussi les suggestions affichées
+                const telInput = document.getElementById('fidelite-tel');
+                if (telInput === document.activeElement) afficherSuggestionsFidelite(telInput.value);
+            } catch (e) {
+                console.warn("Erreur rafraîchissement liste fidélité :", e);
+            }
+
+            // Rafraîchit aussi les valeurs d'affichage venant de CONFIG (VALEUR_POINT,
+            // ASSURANCE_PRIX_FIXE), pour qu'un changement dans le Sheet se reflète à
+            // la caisse sans avoir besoin de cliquer sur "Actualiser".
+            try {
+                const resCfg = await Promise.reject(new Error('Source historique désactivée'));
+                const textCfg = await resCfg.text();
+                const configRows = JSON.parse(textCfg.substring(47, textCfg.length - 2)).table.rows;
+                appliquerConfigAffichage(configRows);
+                updateCart();
+            } catch (e) {
+                console.warn("Erreur rafraîchissement CONFIG :", e);
+            }
+        }
+
+        // Filtre fideliteData par téléphone (préfixe) ou par nom/prénom (contient),
+        // insensible à la casse, et affiche la liste déroulante correspondante.
+        function afficherSuggestionsFidelite(query) {
+            const box = document.getElementById('fidelite-suggestions');
+            const q = (query || '').trim().toLowerCase();
+            if (!q) { box.classList.remove('open'); box.innerHTML = ''; return; }
+
+            const matches = fideliteData.filter(c => {
+                return c.tel.toLowerCase().includes(q)
+                    || c.nom.toLowerCase().includes(q)
+                    || c.prenom.toLowerCase().includes(q);
+            }).slice(0, 8);
+
+            if (matches.length === 0) {
+                box.innerHTML = `<div class="fidelite-suggestion-empty">Aucune carte trouvée — appuyez sur 🔍 pour en créer une.</div>`;
+            } else {
+                box.innerHTML = matches.map(c => `
+                    <div class="fidelite-suggestion-item" onmousedown="selectionnerFidelite('${c.tel.replace(/'/g, "\\'")}')">
+                        <span>${c.prenom} ${c.nom}</span>
+                        <span class="fs-tel">${c.tel} · ${c.points} pts</span>
+                    </div>`).join('');
+            }
+            box.classList.add('open');
+        }
+
+        function masquerSuggestionsFidelite() {
+            const box = document.getElementById('fidelite-suggestions');
+            box.classList.remove('open');
+        }
+
+        // Sélection d'une suggestion : remplit le champ et lance directement la
+        // recherche (qui va chercher les infos à jour — points, palier, etc.).
+        function selectionnerFidelite(tel) {
+            document.getElementById('fidelite-tel').value = tel;
+            masquerSuggestionsFidelite();
+            rechercherFidelite();
+        }
+
+        function updateSalarieInfo() {
+            const name = document.getElementById('salarie-select').value;
+            localStorage.setItem('salarieName', name);
+            const match = salarieData.find(r => r.c[0] && r.c[0].v === name);
+            document.getElementById('salarie-info').innerText = match && match.c[1] ? match.c[1].v : "Aucune info";
+        }
+
+        function render() {
+            const container = document.getElementById('catalog-content');
+            const search = document.getElementById('search').value.toLowerCase();
+            container.innerHTML = '';
+            const groups = {};
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                if (!row.c[1] || !row.c[1].v.toLowerCase().includes(search)) continue;
+                const cat = row.c[2] ? row.c[2].v : "Divers";
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push({ row, i });
+            }
+
+            if (Object.keys(groups).length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-emoji">🔍</span>
+                        <p>Aucun produit ne correspond à « ${search} ».</p>
+                    </div>`;
+                return;
+            }
+
+            for (let cat in groups) {
+                container.innerHTML += `<div class="cat-group"><h2 class="cat-title">${cat}</h2><div class="grid" id="grid-${cat}"></div></div>`;
+                groups[cat].forEach(item => {
+                    const stock = Number(item.row.c[5]?.v || 0);
+                    const prixPromo = item.row.c[9]?.v;
+                    const isPromo = prixPromo && Number(prixPromo) > 0;
+                    const isDisabled = stock <= 0;
+                    const isLow = !isDisabled && stock <= 3;
+                    const price = Math.round(isPromo ? Number(prixPromo) : (item.row.c[3]?.v || 0));
+                    const image = item.row.c[8]?.v || '';
+                    const stockClass = isDisabled ? 'stock-out' : (isLow ? 'stock-low' : '');
+                    const stockLabel = isDisabled ? 'Épuisé' : `Stock : ${stock}`;
+
+                    document.getElementById(`grid-${cat}`).innerHTML += `
+                        <div class="item ${isDisabled ? 'disabled' : ''}" onclick="${isDisabled ? '' : `openQty(${item.i}, ${price})`}">
+                            ${isPromo && !isDisabled ? '<span class="promo-tag">PROMO</span>' : ''}
+                            ${isDisabled ? '<span class="out-tag">RUPTURE</span>' : ''}
+                            <div class="item-img-wrap">${image ? `<img src="${image}">` : ''}</div>
+                            <p class="item-name">${item.row.c[1].v}</p>
+                            <p class="item-price">${fmt(price)}</p>
+                            <span class="stock-tag ${stockClass}">${stockLabel}</span>
+                        </div>`;
+                });
+            }
+        }
+
+        function openQty(i, price) {
+            currentProduct = data[i];
+            currentProduct.effectivePrice = price;
+            isQtyModalOpen = true;
+            document.getElementById('m-name').innerText = currentProduct.c[1].v;
+            document.getElementById('m-qty-val').value = '1';
+            document.getElementById('m-qty').style.display = 'block';
+        }
+
+        function confirmAdd() {
+            const qty = parseInt(document.getElementById('m-qty-val').value);
+            const stockDispo = Number(currentProduct.c[5]?.v || 0);
+            const dejaDansPanier = cart.filter(i => i.name === currentProduct.c[1].v).reduce((s, i) => s + i.qty, 0);
+
+            if (qty + dejaDansPanier > stockDispo) {
+                alert(`Stock insuffisant ! Il reste ${Math.max(0, stockDispo - dejaDansPanier)} unité(s) disponible(s) pour "${currentProduct.c[1].v}".`);
+                return;
+            }
+
+            cart.push({ name: currentProduct.c[1].v, price: currentProduct.effectivePrice, qty: qty, categorie: currentProduct.c[2] ? currentProduct.c[2].v : '', assurance: false, articleOffert: false });
+            isQtyModalOpen = false;
+            document.getElementById('m-qty').style.display = 'none';
+            updateCart();
+        }
+
+        // Fermeture manuelle de la modale quantité (croix) : on réautorise aussi la synchro auto
+        document.querySelector('#m-qty .close-btn').addEventListener('click', () => { isQtyModalOpen = false; });
+
+        function updateCart() {
+            const cartDiv = document.getElementById('cart');
+
+            if (cart.length === 0) {
+                cartDiv.innerHTML = `
+                    <div class="cart-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                        <span>Panier vide — touchez un produit pour l'ajouter</span>
+                    </div>`;
+            } else {
+                cartDiv.innerHTML = cart.map((item, i) => `
+                    <div class="cart-item">
+                        <span class="ci-name"><span class="ci-qty">${item.qty}×</span>${item.name}
+                        ${item.categorie === 'Electronique' && clientFidelite ? `
+                            <label style="display:block; font-size:0.85em; font-weight:500; color:${item.assurance ? '#6CF089' : 'rgba(255,255,255,0.55)'}; cursor:pointer; margin-top:2px;">
+                                <input type="checkbox" ${item.assurance ? 'checked' : ''} onchange="toggleAssurance(${i})" style="vertical-align:middle;"> 🛡️ Assurance 7j (+${fmt(ASSURANCE_PRIX_AFFICHAGE * item.qty)})
+                            </label>` : ''}
+                        ${item.categorie !== 'Jardin' && clientFidelite && clientFidelite.articleOffertEnAttente ? `
+                            <label style="display:block; font-size:0.85em; font-weight:500; color:${item.articleOffert ? '#6CF089' : 'rgba(255,255,255,0.55)'}; cursor:pointer; margin-top:2px;">
+                                <input type="checkbox" ${item.articleOffert ? 'checked' : ''} onchange="toggleArticleOffert(${i})" style="vertical-align:middle;"> 🎁 Article offert (1 unité)
+                            </label>` : ''}
+                        </span>
+                        <span class="ci-price">${fmt(item.price * item.qty + (item.assurance ? ASSURANCE_PRIX_AFFICHAGE * item.qty : 0))} <span class="btn-del" onclick="cart.splice(${i}, 1); updateCart()">✕</span></span>
+                    </div>`).join('');
+            }
+
+            // Application des offres groupées + réduction manuelle éventuelle +
+            // récompenses fidélité (article offert / remise % / chèques —
+            // toutes décidées explicitement par le vendeur, jamais automatiques)
+            const { appliedBundles, remiseMontant, reductionArticleOffert, reductionPourcentage, reductionCheques, totalAssurance, totalFinal } = calculerTotalFinal(cart);
+
+            let extraHtml = '';
+            if (appliedBundles.length > 0) {
+                const totalEconomie = appliedBundles.reduce((s, b) => s + b.discount, 0);
+                extraHtml += `<div class="bundle-promo-box">
+                    <div class="bundle-promo-title">🎁 PROMOTIONS AUTOMATIQUES</div>
+                    ${appliedBundles.map(b => `<div class="bundle-promo-item">✓ ${b.label}${b.times > 1 ? ` ×${b.times}` : ''} <span>−${fmt(b.discount)}</span></div>`).join('')}
+                    <div class="bundle-promo-total">Économie totale : <strong>−${fmt(totalEconomie)}</strong></div>
+                </div>`;
+            }
+            if (remiseMontant > 0) {
+                extraHtml += `<div class="remise-line"><span>🏷️ Réduction -15% appliquée (−${fmt(remiseMontant)})</span><span class="btn-del" onclick="retirerReduction()">✕</span></div>`;
+            }
+            if (reductionArticleOffert > 0) {
+                extraHtml += `<div class="remise-line"><span>🎁 Article offert (−${fmt(reductionArticleOffert)})</span><span class="btn-del" onclick="cart.forEach(i=>i.articleOffert=false); updateCart();">✕</span></div>`;
+            }
+            if (reductionPourcentage > 0) {
+                extraHtml += `<div class="remise-line"><span>🎁 Remise de palier ${clientFidelite.remisePctEnAttente}% (−${fmt(reductionPourcentage)})</span><span class="btn-del" onclick="utiliserRemisePalier=false; updateCart();">✕</span></div>`;
+            }
+            if (reductionCheques > 0) {
+                extraHtml += `<div class="remise-line"><span>🎟️ ${chequesAUtiliser} chèque(s) fidélité (−${fmt(reductionCheques)})</span><span class="btn-del" onclick="chequesAUtiliser=0; updateCart();">✕</span></div>`;
+            }
+            if (totalAssurance > 0) {
+                extraHtml += `<div class="bundle-line">🛡️ Assurance(s) souscrite(s) (+${fmt(totalAssurance)})</div>`;
+            }
+            if (extraHtml) cartDiv.innerHTML = extraHtml + cartDiv.innerHTML;
+
+            const totalText = fmt(totalFinal);
+            document.getElementById('total').innerText = totalText;
+
+            // Synchronise la barre compacte du tiroir panier (mode mobile)
+            const nbArticles = cart.reduce((s, i) => s + i.qty, 0);
+            document.getElementById('toggle-total').innerText = totalText;
+            document.getElementById('toggle-count').innerText = nbArticles > 0
+                ? `${nbArticles} article${nbArticles > 1 ? 's' : ''}`
+                : 'Panier vide';
+        }
+
+        // Sur mobile, ouvre automatiquement le tiroir panier après l'ajout
+        // d'un article pour que le vendeur voie tout de suite le résultat.
+        const _confirmAddOriginal = confirmAdd;
+        confirmAdd = function () {
+            const before = cart.length;
+            _confirmAddOriginal();
+            if (cart.length > before && window.innerWidth <= 900) {
+                toggleSidebar(true);
+            }
+        };
+
+        updateCart();
+        async function envoyerVersLTDSystem(payload) {
+            try {
+                if (payload.type === 'fideliteRecherche') {
+                    const customer = (await CustomerService.search(payload.telephone, { column: 'telephone', limit: 1 }))[0];
+                    return customer ? { success: true, found: true, telephone: customer.telephone, nom: customer.nom || '', prenom: customer.prenom || '', points: customer.points || 0, totalDepense: customer.total_depense || 0, totalPointsGagnes: customer.points_gagnes_cumul || 0, palier: 'Standard', chequesDisponibles: 0, valeurCheque: VALEUR_CHEQUE_AFFICHAGE, seuilCheque: SEUIL_CHEQUE_AFFICHAGE, remisePctEnAttente: customer.remise_pct_attente || 0, articleOffertEnAttente: customer.article_offert_attente === 'Oui' } : { success: true, found: false };
+                }
+                if (payload.type === 'fideliteCreer') {
+                    const customer = await CustomerService.create({ telephone: payload.telephone, nom: payload.nom, prenom: payload.prenom, points: 0 });
+                    return { success: true, telephone: customer.telephone, nom: customer.nom, prenom: customer.prenom, palier: 'Standard' };
+                }
+                const numero = `FAC-${new Date().getFullYear()}-${Date.now()}`;
+                const invoice = await InvoiceService.create({ numero, date_vente: new Date().toISOString().slice(0, 10), heure: new Date().toLocaleTimeString('fr-FR'), employe_nom: payload.employe, nb_produits: payload.produits.reduce((total, item) => total + item.qte, 0), total_ttc: payload.total, paiement: payload.paiement, remise_pack: payload.remiseTotale, remise_employe: payload.reductionEmployeMontant, client_fidelite_tel: payload.clientTelephone || null, reduction_fidelite: 0, assurances: 0 });
+                await executeSupabase(window.supabaseClient.from('factures_data').insert(payload.produits.map(item => ({ numero_facture: invoice.numero, produit_nom: item.produit, quantite: item.qte, prix_unitaire: item.pu, sous_total: item.qte * item.pu }))));
+
+                // Déduit du stock surface de vente (et du total) chaque produit vendu,
+                // en cumulant d'abord les quantités par nom pour ne pas décompter deux
+                // fois un même produit présent sur plusieurs lignes du panier.
+                const qteVendueParNom = {};
+                payload.produits.forEach(item => { qteVendueParNom[item.produit] = (qteVendueParNom[item.produit] || 0) + item.qte; });
+                await Promise.all(Object.entries(qteVendueParNom).map(async ([nom, qte]) => {
+                    const row = data.find(r => r.c[1]?.v === nom);
+                    if (!row) return;
+                    const stockSurface = Number(row.c[10]?.v || 0);
+                    // stock_total est une colonne générée par Postgres (somme des 3
+                    // emplacements) : elle se recalcule seule, il ne faut jamais l'écrire.
+                    await ProductService.update(row.c[0].v, {
+                        stock_surface_vente: Math.max(0, stockSurface - qte)
+                    });
+                }));
+
+                return { success: true, numeroFacture: invoice.numero };
+            } catch (error) { console.error(error); return { success: false, error: error.message }; }
+        }
+        
+
+        function productToLegacyRow(product) {
+            return { c: [{ v: product.id }, { v: product.nom }, { v: product.categorie }, { v: product.prix }, { v: product.cout_unitaire }, { v: product.stock_total }, { v: product.seuil_alerte }, { v: product.statut }, { v: product.image_url }, { v: product.prix_promo }, { v: product.stock_surface_vente }, { v: product.stock_cave_interne }, { v: product.stock_cave_externe }] };
+        }
+
+        async function init() {
+            try {
+                const [employees, products, customers, settings, offers] = await Promise.all([
+                    EmployeeService.getAll({ orderBy: 'nom' }), ProductService.getAll({ orderBy: 'nom' }),
+                    CustomerService.getAll({ orderBy: 'nom' }), SettingsService.getAll(), OfferService.getAll({ orderBy: 'nom' })
+                ]);
+                salarieData = employees.map(employee => ({ c: [{ v: employee.nom }, { v: employee.poste || '' }] }));
+                data = products.map(productToLegacyRow);
+                fideliteData = customers.map(customer => ({ tel: String(customer.telephone || ''), nom: customer.nom || '', prenom: customer.prenom || '', points: Number(customer.points || 0) }));
+                appliquerConfigAffichage(settings.map(setting => ({ c: [{ v: setting.cle }, { v: setting.valeur }] })));
+                BUNDLES = buildBundlesFromOffers(offers);
+                const select = document.getElementById('salarie-select');
+                const previousValue = select.value || localStorage.getItem('salarieName') || '';
+                select.innerHTML = '<option value="">-- Choisir salarié --</option>';
+                salarieData.forEach(row => { const option = document.createElement('option'); option.value = row.c[0].v; option.text = row.c[0].v; select.add(option); });
+                select.value = previousValue;
+                updateSalarieInfo(); render(); startStockAutoSync();
+            } catch (error) { console.error(error); document.getElementById('catalog-content').innerHTML = '<div class="loading-state">Erreur de chargement des données.</div>'; }
+        }
+
+        async function refreshStockOnly() {
+            if (isQtyModalOpen) return;
+            try {
+                const [products, customers, settings, offers] = await Promise.all([ProductService.getAll({ orderBy: 'nom' }), CustomerService.getAll({ orderBy: 'nom' }), SettingsService.getAll(), OfferService.getAll({ orderBy: 'nom' })]);
+                data = products.map(productToLegacyRow);
+                fideliteData = customers.map(customer => ({ tel: String(customer.telephone || ''), nom: customer.nom || '', prenom: customer.prenom || '', points: Number(customer.points || 0) }));
+                appliquerConfigAffichage(settings.map(setting => ({ c: [{ v: setting.cle }, { v: setting.valeur }] })));
+                BUNDLES = buildBundlesFromOffers(offers);
+                render(); updateCart();
+            } catch (error) { console.error(error); }
+        }
+
+        init();
+    </script>
+</body>
+</html>

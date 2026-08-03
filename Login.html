@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connexion — LTD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+    <style>
+        body {
+            background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-700) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: var(--paper);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px 40px;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+        }
+
+        .login-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--navy-900);
+            margin: 0 0 8px;
+        }
+
+        .login-subtitle {
+            font-size: 0.9em;
+            color: var(--ink-soft);
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--ink);
+        }
+
+        .form-input {
+            padding: 12px 16px;
+            border: 2px solid var(--line);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1em;
+            transition: border-color .2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--navy-800);
+        }
+
+        .btn-login {
+            background: var(--navy-900);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background .2s ease, transform .1s ease;
+            margin-top: 12px;
+        }
+
+        .btn-login:hover {
+            background: var(--navy-800);
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .error-message {
+            background: var(--red-600);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .demo-info {
+            margin-top: 24px;
+            padding: 16px;
+            background: var(--amber-bg);
+            border-left: 4px solid var(--amber);
+            border-radius: 8px;
+            font-size: 0.85em;
+            color: var(--ink);
+        }
+
+        .demo-info strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--navy-900);
+        }
+
+        .demo-credentials {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9em;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-header">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="login-logo">
+        <h1 class="login-title">Limited Gasoline</h1>
+        <p class="login-subtitle">Portail interne — Mirror Park</p>
+    </div>
+
+    <div id="error-message" class="error-message"></div>
+
+    <form class="login-form" id="login-form">
+        <div class="form-group">
+            <label for="email" class="form-label">Adresse email</label>
+            <input type="email" id="email" class="form-input" placeholder="Entrez votre adresse email" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password" class="form-label">Mot de passe</label>
+            <input type="password" id="password" class="form-input" placeholder="Entrez votre mot de passe" required>
+        </div>
+
+        <button type="submit" class="btn-login">Se connecter</button>
+    </form>
+
+    <div class="demo-info">
+        <strong>🔐 Comptes de démonstration</strong>
+        <div class="demo-credentials">
+            Ces comptes locaux sont fournis uniquement pour tests hors Supabase. Une fois Supabase configuré, utilisez vos comptes réels.
+        </div>
+    </div>
+</div>
+
+<!-- Supabase client login script -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+    const form = document.getElementById('login-form');
+    const errorMessage = document.getElementById('error-message');
+
+    // Si déjà connecté, rediriger
+    const existing = localStorage.getItem('ltd_session');
+    if (existing) {
+        window.location.href = 'index.html';
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+            const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                showError('❌ Échec de connexion : ' + (error.message || 'vérifiez vos identifiants'));
+                return;
+            }
+
+            const user = data.user;
+            // Récupérer le rôle depuis la table `users` si disponible
+            let role = 'employe';
+            let nom = user.email || 'Utilisateur';
+            try {
+                const { data: row, error: qErr } = await window.supabaseClient.from('utilisateurs').select('nom_affichage,roles(nom)').eq('id', user.id).single();
+                if (!qErr && row) {
+                    role = row.roles?.nom || role;
+                    nom = row.nom_affichage || nom;
+                }
+            } catch (fetchErr) {
+                // ignore: table/policy might not exist
+                console.warn('role fetch failed', fetchErr);
+            }
+
+            const session = {
+                username: user.email,
+                role,
+                nom,
+                loginTime: new Date().toISOString()
+            };
+
+            localStorage.setItem('ltd_session', JSON.stringify(session));
+            window.location.href = 'index.html';
+        } catch (err) {
+            console.error(err);
+            showError('Erreur interne, réessayez plus tard');
+        }
+    });
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add('show');
+        setTimeout(() => errorMessage.classList.remove('show'), 5000);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Ship From Store — Caisse LTD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="Logo_LTD_Rond.png">
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/services/products.js"></script>
+<script src="js/services/employees.js"></script>
+<script src="js/services/customers.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      checkAuth('employe');
+      if (hasRole('admin')) {
+        const configLink = document.getElementById('config-link');
+        if (configLink) configLink.style.display = 'block';
+      }
+    });
+  </script></head>
+
+<body>
+
+<nav class="main-nav">
+    <a href="index.html" class="nav-brand">
+        <img src="Logo_LTD_Rond.png" alt="Logo LTD" class="nav-logo">
+        <span class="nav-brand-text">Limited Gasoline</span>
+    </a>
+    <span class="nav-sep"></span>
+    <div class="nav-links">
+        <a href="index.html" class="nav-home">Accueil</a>
+        <a href="Planning.html">Planning</a>
+        <a href="Caisse%20Enregistreuse.html">Caisse Enregistreuse</a>
+        <a href="Ship%20From%20Store.html" class="active">Ship From Store</a>
+        <a href="Dashboard.html">Dashboard</a>
+        <a href="Fast%20Fashion.html">Fast Fashion</a>
+        <a href="Versement%20S%20+%20P.html">Versement S + P</a>
+    </div>
+    <a href="Config.html" class="nav-link" id="config-link" style="margin-left: auto; display:none; color: var(--ink); text-decoration: none; font-weight: 600;">⚙️ Config</a>
+    <button id="logout-btn" style="margin-left: 12px; padding: 8px 16px; background: var(--red-600); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.85em;">🚪 Déconnexion</button>
+</nav>
+
+<div class="page-shell">
+    <div id="status-msg"></div>
+
+    <div id="page-topbar">
+    <div class="app-logo">
+        <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="9" y1="14" x2="15" y2="14"/></svg></div>
+        <span class="txt">Caisse LTD</span>
+        <span class="sub">🚚 Ship From Store</span>
+    </div>
+    <div id="page-clock"></div>
+</div>
+
+<section id="screen-sfs">
+    <div class="sync-bar">
+        <span class="sync-dot" id="sfs-sync-dot"></span>
+        <span class="sync-label" id="sfs-sync-label">Synchro auto activée</span>
+        <span class="sync-note">· actualisation auto toutes les 15s</span>
+        <button class="btn btn-outline small" style="margin-left:auto;" onclick="SFSApp.load()">🔄 Actualiser</button>
+        <button class="btn btn-red small" onclick="SFSApp.ouvrirNouvelleCommande()">➕ Nouvelle commande</button>
+    </div>
+
+    <div id="sfs-setup-banner" style="display:none;">
+        ⚠️ L'onglet « 📦 Commandes SFS » n'existe pas encore (ou les actions <code>nouvelleCommandeSFS</code> / <code>changerStatutSFS</code> ne sont pas encore actives côté Apps Script). Applique le patch <code>PATCH_AppsScript_SFS.gs</code> fourni, puis exécute <code>installerCommandesSFS()</code> une fois depuis l'éditeur Apps Script.
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-box alerte"><div class="label">À préparer</div><div class="value" id="sfs-stat-attente">–</div></div>
+        <div class="stat-box positif"><div class="label">Réalisées aujourd'hui</div><div class="value" id="sfs-stat-jour">–</div></div>
+        <div class="stat-box"><div class="label">Total commandes</div><div class="value" id="sfs-stat-total">–</div></div>
+        <div class="stat-box"><div class="label">Valeur en attente</div><div class="value" id="sfs-stat-valeur">–</div></div>
+    </div>
+
+    <div class="sfs-board">
+        <div class="sfs-col attente">
+            <h3>📦 En préparation <span class="sfs-count" id="sfs-count-attente">0</span></h3>
+            <div id="sfs-list-attente"><div class="empty-state">Chargement...</div></div>
+        </div>
+        <div class="sfs-col pret">
+            <h3>✅ Réalisées <span class="sfs-count" id="sfs-count-pret">0</span></h3>
+            <div id="sfs-list-pret"><div class="empty-state">Chargement...</div></div>
+        </div>
+    </div>
+
+    <!-- Modale Nouvelle commande SFS -->
+    <div id="sfs-m-nouvelle" class="modal">
+        <div class="modal-content" style="width:460px;">
+            <span class="close-btn" onclick="document.getElementById('sfs-m-nouvelle').style.display='none'">×</span>
+            <h2>🚚 Nouvelle commande SFS</h2>
+            <p style="margin-top:-8px;">Pour une commande prise par téléphone ou en personne — les commandes du catalogue en ligne apparaissent ici automatiquement.</p>
+            <div class="field" style="margin-bottom:10px;"><label>Nom du client</label><input type="text" class="input-std" id="sfs-client-nom"></div>
+            <div class="field" style="margin-bottom:10px;"><label>Téléphone</label><input type="tel" class="input-std" id="sfs-client-tel"></div>
+            <div class="field" style="margin-bottom:10px;"><label>Discord (optionnel)</label><input type="text" class="input-std" id="sfs-client-discord"></div>
+            <label class="field-label">Produits commandés</label>
+            <div id="sfs-produits-list"></div>
+            <button class="btn btn-outline small" onclick="SFSApp.ajouterLigneProduit()">➕ Ajouter un produit</button>
+            <div class="field" style="margin: 12px 0 10px;"><label>Total ($)</label><input type="number" step="0.01" class="input-std" id="sfs-total"></div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:.85em; font-weight:600; cursor:pointer; margin-bottom:10px;">
+                <input type="checkbox" id="sfs-livraison-demandee" onchange="SFSApp.toggleLivraisonAdresse()"> 🚀 Livraison demandée
+            </label>
+            <div class="field" id="sfs-adresse-wrap" style="display:none; margin-bottom:10px;"><label>Adresse de livraison</label><input type="text" class="input-std" id="sfs-adresse"></div>
+            <div class="field" style="margin-bottom:10px;"><label>Employé</label>
+                <select class="input-std" id="sfs-employe"><option value="">-- Choisir --</option></select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="document.getElementById('sfs-m-nouvelle').style.display='none'">Annuler</button>
+                <button class="btn btn-red" id="sfs-btn-creer" onclick="SFSApp.validerCommande()">Créer la commande</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale Confirmation statut réalisée -->
+    <div id="sfs-m-statut" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="document.getElementById('sfs-m-statut').style.display='none'">×</span>
+            <h3>✅ Marquer la commande réalisée</h3>
+            <p style="margin-top:-8px;">Commande <b id="sfs-statut-numero"></b></p>
+            <div class="field">
+                <label>Réalisée par</label>
+                <select class="input-std" id="sfs-statut-employe"><option value="">-- Choisir --</option></select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="document.getElementById('sfs-m-statut').style.display='none'">Annuler</button>
+                <button class="btn btn-green" onclick="SFSApp.confirmerStatut()">Confirmer</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+/* ==========================================================================
+   CONFIGURATION — mêmes valeurs que l'application complète, pour que cette
+   page autonome se connecte au même Google Sheet et au même backend.
+   ========================================================================== */
+const CONFIG = { discordWebhook: '' };
+
+const Utils = {
+    money(n) { return Math.round(n || 0).toLocaleString('fr-FR') + ' $'; },
+    gvizUrl(sheet, opts) {
+        throw new Error('Google Sheets a été remplacé par Supabase.');
+    },
+    async fetchGviz(sheet, opts) {
+        const res = await fetch(this.gvizUrl(sheet, opts));
+        const text = await res.text();
+        return JSON.parse(text.substring(47, text.length - 2)).table.rows;
+    },
+    parseGvizDate(v) {
+        if (v === null || v === undefined) return null;
+        if (typeof v === 'string' && v.indexOf('Date(') === 0) {
+            const parts = v.substring(5, v.length - 1).split(',').map(Number);
+            return new Date(parts[0], parts[1], parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0);
+        }
+        const d = new Date(v);
+        return isNaN(d) ? null : d;
+    },
+    async post(url, payload) {
+        try {
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+            return await res.json();
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    },
+    async discordEmbed(embed) {
+        if (!CONFIG.discordWebhook) return;
+        try {
+            await fetch(CONFIG.discordWebhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [embed] }) });
+        } catch (e) { console.error('Erreur Discord :', e); }
+    }
+};
+
+let statusTimeout = null;
+function showMessage(text, type = 'info', durationMs = 4000) {
+    const box = document.getElementById('status-msg');
+    box.className = type;
+    box.innerText = text;
+    box.style.display = 'block';
+    clearTimeout(statusTimeout);
+    if (durationMs > 0) statusTimeout = setTimeout(() => { box.style.display = 'none'; }, durationMs);
+}
+
+setInterval(() => {
+    const c = document.getElementById('page-clock');
+    if (c) c.innerText = new Date().toLocaleString('fr-FR');
+}, 1000);
+
+/* ==========================================================================
+   MODULE SHIP FROM STORE
+   ========================================================================== */
+const SFSApp = {
+    orders: [], salarieData: [], pollInterval: null, sheetReady: true, statutNumeroEnCours: null,
+
+    ajouterLigneProduit(nom = '', qte = 1) {
+        const list = document.getElementById('sfs-produits-list');
+        const row = document.createElement('div');
+        row.className = 'sfs-produit-row';
+        row.innerHTML = `<input type="text" class="input-std" placeholder="Nom du produit" value="${nom}">
+                          <input type="number" class="input-std" min="1" value="${qte}">
+                          <span class="rm" onclick="this.parentElement.remove()">✕</span>`;
+        list.appendChild(row);
+    },
+
+    toggleLivraisonAdresse() {
+        document.getElementById('sfs-adresse-wrap').style.display = document.getElementById('sfs-livraison-demandee').checked ? 'block' : 'none';
+    },
+
+
+
+    ouvrirNouvelleCommande() {
+        document.getElementById('sfs-client-nom').value = '';
+        document.getElementById('sfs-client-tel').value = '';
+        document.getElementById('sfs-client-discord').value = '';
+        document.getElementById('sfs-total').value = '';
+        document.getElementById('sfs-livraison-demandee').checked = false;
+        document.getElementById('sfs-adresse').value = '';
+        document.getElementById('sfs-adresse-wrap').style.display = 'none';
+        document.getElementById('sfs-produits-list').innerHTML = '';
+        this.ajouterLigneProduit();
+        const select = document.getElementById('sfs-employe');
+        const prev = select.value || localStorage.getItem('salarieName') || '';
+        select.innerHTML = '<option value="">-- Choisir --</option>';
+        this.salarieData.forEach(nom => { const o = document.createElement('option'); o.value = nom; o.text = nom; select.add(o); });
+        select.value = prev;
+        document.getElementById('sfs-m-nouvelle').style.display = 'block';
+    },
+
+    async validerCommande() {
+        const nom = document.getElementById('sfs-client-nom').value.trim();
+        const tel = document.getElementById('sfs-client-tel').value.trim();
+        const discord = document.getElementById('sfs-client-discord').value.trim();
+        const total = parseFloat(document.getElementById('sfs-total').value);
+        const employe = document.getElementById('sfs-employe').value;
+        const demandeeLivraison = document.getElementById('sfs-livraison-demandee').checked;
+        const adresse = document.getElementById('sfs-adresse').value.trim();
+        const produits = [...document.querySelectorAll('#sfs-produits-list .sfs-produit-row')].map(row => {
+            const inputs = row.querySelectorAll('input');
+            return { nom: inputs[0].value.trim(), qte: parseInt(inputs[1].value) || 1 };
+        }).filter(p => p.nom);
+
+        if (!nom || !tel) { showMessage("Nom et téléphone du client requis.", "error"); return; }
+        if (produits.length === 0) { showMessage("Ajoute au moins un produit.", "error"); return; }
+        if (!total || total <= 0) { showMessage("Indique un total valide.", "error"); return; }
+        if (!employe) { showMessage("Sélectionne l'employé qui crée la commande.", "error"); return; }
+
+        const numero = "SFS-" + Math.floor(1000 + Math.random() * 9000);
+        const btn = document.getElementById('sfs-btn-creer');
+        btn.disabled = true; btn.innerText = "Création...";
+
+        const resultat = await Utils.post(CONFIG.appsScriptCaisse, {
+            type: "nouvelleCommandeSFS", numero,
+            client: { nom, tel, discord },
+            livraison: { demandee: demandeeLivraison, adresse, prix: 0 },
+            produits, total: Math.round(total), employe
+        });
+
+        btn.disabled = false; btn.innerText = "Créer la commande";
+
+        if (!resultat.success) {
+            showMessage("❌ " + (resultat.error || "Impossible de créer la commande (patch Apps Script SFS non installé ?)"), "error", 7000);
+            return;
+        }
+
+        Utils.discordEmbed({
+            title: "🚚 Nouvelle commande SFS — " + (resultat.numero || numero), color: 2003199,
+            fields: [
+                { name: "👤 Client", value: `${nom} · ${tel}`, inline: false },
+                { name: "📦 Produits", value: produits.map(p => `${p.qte}x ${p.nom}`).join("\n") },
+                { name: "🛵 Mode", value: demandeeLivraison ? `Livraison (${adresse || 'adresse non précisée'})` : "Sur place / À emporter" },
+                { name: "💰 Total", value: Utils.money(total), inline: true },
+                { name: "🧑‍💼 Employé", value: employe, inline: true },
+                { name: "📋 Statut", value: "En préparation" }
+            ], footer: { text: "Caisse LTD - Ship From Store" }
+        });
+
+        showMessage("✅ Commande créée : " + (resultat.numero || numero), "success");
+        document.getElementById('sfs-m-nouvelle').style.display = 'none';
+        this.load();
+    },
+
+    ouvrirConfirmationStatut(numero) {
+        this.statutNumeroEnCours = numero;
+        document.getElementById('sfs-statut-numero').innerText = numero;
+        const select = document.getElementById('sfs-statut-employe');
+        const prev = localStorage.getItem('salarieName') || '';
+        select.innerHTML = '<option value="">-- Choisir --</option>';
+        this.salarieData.forEach(nom => { const o = document.createElement('option'); o.value = nom; o.text = nom; select.add(o); });
+        select.value = prev;
+        document.getElementById('sfs-m-statut').style.display = 'block';
+    },
+
+    async confirmerStatut() {
+        const numero = this.statutNumeroEnCours;
+        const employe = document.getElementById('sfs-statut-employe').value;
+        if (!employe) { showMessage("Sélectionne l'employé qui a réalisé la commande.", "error"); return; }
+        localStorage.setItem('salarieName', employe);
+
+        const resultat = await Utils.post(CONFIG.appsScriptCaisse, { type: "changerStatutSFS", numero, statut: 'Réalisée', employe });
+        if (!resultat.success) { showMessage("❌ " + (resultat.error || "Mise à jour impossible."), "error", 6000); return; }
+
+        const cmd = this.orders.find(o => o.numero === numero);
+        Utils.discordEmbed({
+            title: "✅ Commande SFS prête — " + numero, color: 2067276,
+            fields: cmd ? [
+                { name: "👤 Client", value: `${cmd.clientNom} · ${cmd.clientTel}` },
+                { name: "🧑‍💼 Traitée par", value: employe }
+            ] : [], footer: { text: "Caisse LTD - Ship From Store" }
+        });
+
+        document.getElementById('sfs-m-statut').style.display = 'none';
+        showMessage("✅ Statut mis à jour.", "success");
+        this.load();
+    },
+
+    render() {
+        const attente = this.orders.filter(o => o.statut !== 'Réalisée');
+        const pret = this.orders.filter(o => o.statut === 'Réalisée');
+        const today = new Date().toLocaleDateString('fr-FR');
+        const jourCount = pret.filter(o => o.dateRealisation && o.dateRealisation.toLocaleDateString('fr-FR') === today).length;
+        const valeurAttente = attente.reduce((s, o) => s + o.total, 0);
+
+        document.getElementById('sfs-stat-attente').innerText = attente.length;
+        document.getElementById('sfs-stat-jour').innerText = jourCount;
+        document.getElementById('sfs-stat-total').innerText = this.orders.length;
+        document.getElementById('sfs-stat-valeur').innerText = Utils.money(valeurAttente);
+        document.getElementById('sfs-count-attente').innerText = attente.length;
+        document.getElementById('sfs-count-pret').innerText = pret.length;
+
+        const cardHtml = (o, done) => `
+            <div class="sfs-card ${done ? 'done' : ''}">
+                <span class="sfs-id">${o.numero}</span><span class="sfs-date">${o.date ? o.date.toLocaleDateString('fr-FR') : ''}</span>
+                <div class="sfs-client">${o.clientNom}</div>
+                <div class="sfs-tel">${o.clientTel}${o.discord ? ' · ' + o.discord : ''}</div>
+                <div class="sfs-produits">${o.produitsTexte}</div>
+                <div class="sfs-emp" style="margin-top:6px;">${o.mode === 'Livraison' ? '🚀 Livraison' : '🏬 Sur place / À emporter'}${o.mode === 'Livraison' && o.adresse ? ' — ' + o.adresse : ''}</div>
+                <div class="sfs-foot">
+                    <span class="sfs-total">${Utils.money(o.total)}</span>
+                    ${done ? '' : `<button class="btn btn-green small" onclick="SFSApp.ouvrirConfirmationStatut('${o.numero}')">✅ Marquer réalisée</button>`}
+                </div>
+                ${o.employe ? `<div class="sfs-emp">${done ? 'Traitée' : 'Créée'} par ${o.employe}</div>` : ''}
+            </div>`;
+
+        document.getElementById('sfs-list-attente').innerHTML = attente.length
+            ? attente.map(o => cardHtml(o, false)).join('')
+            : '<div class="empty-state">Aucune commande en attente.</div>';
+        document.getElementById('sfs-list-pret').innerHTML = pret.length
+            ? pret.map(o => cardHtml(o, true)).join('')
+            : '<div class="empty-state">Aucune commande réalisée pour l\'instant.</div>';
+    },
+
+    async load() {
+        const label = document.getElementById('sfs-sync-label');
+        label.innerText = "Synchronisation..."; label.classList.add('syncing');
+        try {
+            const [rows, employesRows] = await Promise.all([Utils.fetchGviz('📦 Commandes SFS'), Utils.fetchGviz('👥 Employés')]);
+            this.sheetReady = true;
+            document.getElementById('sfs-setup-banner').style.display = 'none';
+            this.salarieData = employesRows.filter(r => r.c[0] && r.c[0].v).map(r => r.c[0].v);
+            this.orders = rows.filter(r => r.c[0] && r.c[0].v).map(r => ({
+                numero: r.c[0].v, date: Utils.parseGvizDate(r.c[1]?.v), clientNom: r.c[2]?.v || '', clientTel: r.c[3]?.v || '',
+                discord: r.c[4]?.v || '', mode: r.c[5]?.v || '', adresse: r.c[6]?.v || '',
+                produitsTexte: r.c[7]?.v || '', nb: Number(r.c[8]?.v || 0), total: Number(r.c[9]?.v || 0),
+                statut: r.c[10]?.v || 'En préparation', employe: r.c[11]?.v || '', dateRealisation: Utils.parseGvizDate(r.c[12]?.v)
+            }));
+            this.render();
+            label.innerText = "Synchronisé à " + new Date().toLocaleTimeString('fr-FR'); label.classList.remove('syncing');
+        } catch (e) {
+            this.sheetReady = false;
+            document.getElementById('sfs-setup-banner').style.display = 'block';
+            document.getElementById('sfs-list-attente').innerHTML = '<div class="empty-state">En attente de configuration de l\'onglet « 📦 Commandes SFS ».</div>';
+            document.getElementById('sfs-list-pret').innerHTML = '';
+            label.innerText = "⚠️ Onglet non trouvé"; label.classList.remove('syncing');
+        }
+        this.startSync();
+    },
+
+    startSync() { if (this.pollInterval) clearInterval(this.pollInterval); this.pollInterval = setInterval(() => this.load(), 15000); }
+};
+
+Utils.post = async function (_, payload) {
+    try {
+        if (payload.type === 'nouvelleCommandeSFS') {
+            const order = await executeSupabase(window.supabaseClient.from('commandes_sfs').insert({ numero: payload.numero, client_nom: payload.client.nom, telephone: payload.client.tel, discord: payload.client.discord, mode: payload.livraison.demandee ? 'Livraison' : 'Sur place', adresse_livraison: payload.livraison.adresse, produits: payload.produits.map(product => `${product.qte}x ${product.nom}`).join(', '), nb_articles: payload.produits.reduce((total, product) => total + product.qte, 0), total_ttc: payload.total, employe_nom: payload.employe, statut: 'En préparation' }).select().single());
+            return { success: true, numero: order.numero || payload.numero };
+        }
+        if (payload.type === 'changerStatutSFS') { await executeSupabase(window.supabaseClient.from('commandes_sfs').update({ statut: payload.statut, employe_nom: payload.employe, date_realisation: new Date().toISOString() }).eq('numero', payload.numero)); return { success: true }; }
+        throw new Error('Action Supabase inconnue.');
+    } catch (error) { console.error(error); return { success: false, error: error.message }; }
+};
+
+SFSApp.load = async function () {
+    const label = document.getElementById('sfs-sync-label');
+    try {
+        const [orders, employees] = await Promise.all([executeSupabase(window.supabaseClient.from('commandes_sfs').select('*').order('date_creation', { ascending: false }).limit(500)), EmployeeService.getAll({ orderBy: 'nom' })]);
+        this.salarieData = employees.map(employee => employee.nom).filter(Boolean);
+        this.orders = orders.map(order => ({ numero: order.numero, date: order.date_creation ? new Date(order.date_creation) : null, clientNom: order.client_nom || '', clientTel: order.telephone || '', discord: order.discord || '', mode: order.mode || '', adresse: order.adresse_livraison || '', produitsTexte: order.produits || '', total: Number(order.total_ttc || 0), statut: order.statut || 'En préparation', employe: order.employe_nom || '', dateRealisation: order.date_realisation ? new Date(order.date_realisation) : null }));
+        this.render(); label.innerText = 'Synchronisé à ' + new Date().toLocaleTimeString('fr-FR');
+    } catch (error) { console.error(error); label.innerText = 'Échec de synchronisation'; }
+    this.startSync();
+};
+
+SFSApp.load();
+</script>
+</body>
+</html>
