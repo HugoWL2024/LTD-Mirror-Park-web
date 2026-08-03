@@ -57,3 +57,8 @@ créées ou ajustées.
 Les politiques RLS doivent autoriser les rôles et les opérations voulus pour
 chaque table. Cette configuration s'effectue dans Supabase et ne nécessite pas
 de clé serveur dans ce projet statique.
+
+`supabase/rls_policies.sql` contient les politiques `UPDATE` manquantes sur
+`produits` et `commandes_sfs` (à exécuter dans le SQL Editor de Supabase). Sans
+elles, la déduction de stock à la validation d'un paiement ne modifie aucune
+ligne et l'ancien code remontait l'erreur PostgREST `PGRST116`.
