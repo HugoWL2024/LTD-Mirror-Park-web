@@ -630,18 +630,10 @@ function showToast(msg, isError){
   setTimeout(()=>t.classList.remove('show'), 1800);
 }
 
-function gvizUrl(sheet){
-  throw new Error('La source Google Sheets a été remplacée par Supabase.');
-}
+
 
 // Les cellules "Date" renvoyées par gviz arrivent sous la forme Date(Y,M,D) (mois 0-indexé)
-function gvizToIso(cell){
-  if(!cell || cell.v==null) return '';
-  const v = cell.v;
-  if(typeof v === 'string' && v.startsWith('Date(')){
-    const m = v.match(/Date\((\d+),(\d+),(\d+)/);
-    if(m) return isoDate(+m[1], +m[2], +m[3]);
-  }
+
   return String(v).slice(0,10);
 }
 

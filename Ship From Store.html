@@ -139,21 +139,13 @@
 <script>
 /* ==========================================================================
    CONFIGURATION — mêmes valeurs que l'application complète, pour que cette
-   page autonome se connecte au même Google Sheet et au même backend.
+   page autonome se connecte au même Supabase et au même backend.
    ========================================================================== */
 const CONFIG = { discordWebhook: '' };
 
 const Utils = {
     money(n) { return Math.round(n || 0).toLocaleString('fr-FR') + ' $'; },
-    gvizUrl(sheet, opts) {
-        throw new Error('Google Sheets a été remplacé par Supabase.');
-    },
-    async fetchGviz(sheet, opts) {
-        const res = await fetch(this.gvizUrl(sheet, opts));
-        const text = await res.text();
-        return JSON.parse(text.substring(47, text.length - 2)).table.rows;
-    },
-    parseGvizDate(v) {
+    parseDateFrancaise(v) {
         if (v === null || v === undefined) return null;
         if (typeof v === 'string' && v.indexOf('Date(') === 0) {
             const parts = v.substring(5, v.length - 1).split(',').map(Number);
@@ -197,7 +189,7 @@ setInterval(() => {
    MODULE SHIP FROM STORE
    ========================================================================== */
 const SFSApp = {
-    orders: [], salarieData: [], pollInterval: null, sheetReady: true, statutNumeroEnCours: null,
+    orders: [], salarieData: [], pollInterval: null, dataReady: true, statutNumeroEnCours: null,
 
     ajouterLigneProduit(nom = '', qte = 1) {
         const list = document.getElementById('sfs-produits-list');
@@ -360,20 +352,23 @@ const SFSApp = {
         const label = document.getElementById('sfs-sync-label');
         label.innerText = "Synchronisation..."; label.classList.add('syncing');
         try {
-            const [rows, employesRows] = await Promise.all([Utils.fetchGviz('📦 Commandes SFS'), Utils.fetchGviz('👥 Employés')]);
-            this.sheetReady = true;
+            const [rows, employesRows] = await Promise.all([
+                executeSupabase(window.supabaseClient.from('commandes_sfs').select('*').order('date', { ascending: false }).limit(1000)),
+                EmployeeService.getAll({ limit: 1000 })
+            ]);
+            this.dataReady = true;
             document.getElementById('sfs-setup-banner').style.display = 'none';
-            this.salarieData = employesRows.filter(r => r.c[0] && r.c[0].v).map(r => r.c[0].v);
-            this.orders = rows.filter(r => r.c[0] && r.c[0].v).map(r => ({
-                numero: r.c[0].v, date: Utils.parseGvizDate(r.c[1]?.v), clientNom: r.c[2]?.v || '', clientTel: r.c[3]?.v || '',
-                discord: r.c[4]?.v || '', mode: r.c[5]?.v || '', adresse: r.c[6]?.v || '',
-                produitsTexte: r.c[7]?.v || '', nb: Number(r.c[8]?.v || 0), total: Number(r.c[9]?.v || 0),
-                statut: r.c[10]?.v || 'En préparation', employe: r.c[11]?.v || '', dateRealisation: Utils.parseGvizDate(r.c[12]?.v)
+            this.salarieData = employesRows.map(r => r.nom);
+            this.orders = rows.map(r => ({
+                numero: r.numero, date: Utils.parseDateFrancaise(r.date), clientNom: r.client_nom || '', clientTel: r.client_tel || '',
+                discord: r.client_discord || '', mode: r.mode || '', adresse: r.adresse || '',
+                produitsTexte: r.produits_texte || '', nb: Number(r.nb_produits || 0), total: Number(r.total || 0),
+                statut: r.statut || 'En préparation', employe: r.employe || '', dateRealisation: Utils.parseDateFrancaise(r.date_realisation)
             }));
             this.render();
             label.innerText = "Synchronisé à " + new Date().toLocaleTimeString('fr-FR'); label.classList.remove('syncing');
         } catch (e) {
-            this.sheetReady = false;
+            this.dataReady = false;
             document.getElementById('sfs-setup-banner').style.display = 'block';
             document.getElementById('sfs-list-attente').innerHTML = '<div class="empty-state">En attente de configuration de l\'onglet « 📦 Commandes SFS ».</div>';
             document.getElementById('sfs-list-pret').innerHTML = '';

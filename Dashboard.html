@@ -625,7 +625,7 @@
 
         <div class="sync-bar">
             <span class="sync-dot" id="syncDot"></span>
-            <span class="sync-label" id="syncText">Connexion au Google Sheet…</span>
+            <span class="sync-label" id="syncText">Connexion à Supabase…</span>
             <span class="sync-note">· actualisation auto toutes les 30s</span>
             <button class="btn-refresh small" onclick="loadInvoicesGuarded()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -941,30 +941,14 @@
             document.getElementById('impot-details').innerHTML = html;
         }
 
-        function gvizUrl(sheet, opts) {
-            throw new Error('Google Sheets a été remplacé par Supabase.');
-        }
-
-        function parseGviz(text) {
-            return JSON.parse(text.substring(47, text.length - 2)).table.rows;
-        }
-
-        function parseGvizDate(v) {
-            if (v === null || v === undefined) return null;
-            if (typeof v === 'string' && v.indexOf('Date(') === 0) {
-                const parts = v.substring(5, v.length - 1).split(',').map(Number);
-                return new Date(parts[0], parts[1], parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0);
-            }
-            const d = new Date(v);
-            return isNaN(d) ? null : d;
-        }
-
         function parseDateFrancaise(v) {
             if (typeof v === 'string' && v.indexOf('/') !== -1) {
                 const p = v.split('/').map(Number);
                 if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]);
             }
-            return parseGvizDate(v);
+            if (v === null || v === undefined) return null;
+            const d = new Date(v);
+            return isNaN(d) ? null : d;
         }
 
         function money(n) {
@@ -972,9 +956,9 @@
         }
 
         function getConfigValue(configRows, cle) {
-            for (let i = 1; i < configRows.length; i++) {
+            for (let i = 0; i < configRows.length; i++) {
                 const row = configRows[i];
-                if (row.c[0] && row.c[0].v === cle) return row.c[1] ? row.c[1].v : null;
+                if (row.cle === cle) return row.valeur || null;
             }
             return null;
         }
@@ -983,7 +967,7 @@
             const noms = new Set();
             for (let i = 0; i < employesRows.length; i++) {
                 const row = employesRows[i];
-                if (row.c[0] && row.c[0].v) noms.add(String(row.c[0].v).trim());
+                if (row.nom) noms.add(String(row.nom).trim());
             }
             return noms;
         }
@@ -992,9 +976,9 @@
             const map = {};
             for (let i = 0; i < employesRows.length; i++) {
                 const row = employesRows[i];
-                if (!row.c[0] || !row.c[0].v) continue;
-                const nom = String(row.c[0].v).trim();
-                map[nom] = parseFloat(row.c[4]?.v) || 0;
+                if (!row.nom) continue;
+                const nom = String(row.nom).trim();
+                map[nom] = parseFloat(row.panier_moyen) || 0;
             }
             return map;
         }
@@ -1008,39 +992,39 @@
         async function init() {
             try {
                 const [tVentes, tCharges, tConfig, tHist, tPerf, tEmployes, tTreso, tProduits, tFactures] = await Promise.all([
-                    fetch(gvizUrl('VENTES_BRUTES')).then(r => r.text()),
-                    fetch(gvizUrl('💰 Charges')).then(r => r.text()),
-                    fetch(gvizUrl('CONFIG')).then(r => r.text()),
-                    fetch(gvizUrl('HISTORIQUE_SEMAINES')).then(r => r.text()),
-                    fetch(gvizUrl('PERFORMANCE_EMPLOYES')).then(r => r.text()),
-                    fetch(gvizUrl('👥 Employés')).then(r => r.text()),
-                    fetch(gvizUrl('💰 Charges', { headers: 0 })).then(r => r.text()),
-                    fetch(gvizUrl('📦 Produits')).then(r => r.text()),
-                    fetch(gvizUrl('🧾 Factures')).then(r => r.text())
+                    executeSupabase(window.supabaseClient.from('ventes_brutes').select('*').order('date_vente', { ascending: false }).limit(1000)),
+                    executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000)),
+                    SettingsService.getAll({ limit: 1000 }),
+                    executeSupabase(window.supabaseClient.from('historique_semaines').select('*').order('date_debut', { ascending: false }).limit(1000)),
+                    executeSupabase(window.supabaseClient.from('performance_employes').select('*').order('date_semaine', { ascending: false }).limit(1000)),
+                    EmployeeService.getAll({ limit: 1000 }),
+                    executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000)),
+                    ProductService.getAll({ limit: 1000 }),
+                    executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000))
                 ]);
 
-                const ventesRows = parseGviz(tVentes);
-                const chargesRows = parseGviz(tCharges);
-                const configRows = parseGviz(tConfig);
-                const histRows = parseGviz(tHist);
-                const perfRows = parseGviz(tPerf);
-                const employesRows = parseGviz(tEmployes);
-                const tresoRows = parseGviz(tTreso);
-                const produitsRows = parseGviz(tProduits);
+                const ventesRows = tVentes;
+                const chargesRows = tCharges;
+                const configRows = tConfig;
+                const histRows = tHist;
+                const perfRows = tPerf;
+                const employesRows = tEmployes;
+                const tresoRows = tTreso;
+                const produitsRows = tProduits;
                 let facturesRows = [];
-                try { facturesRows = parseGviz(tFactures); } catch (e) { console.warn("Onglet 🧾 Factures introuvable ou vide — indicateur fidélité désactivé.", e); }
+                try { facturesRows = tFactures; } catch (e) { console.warn("Onglet 🧾 Factures introuvable ou vide — indicateur fidélité désactivé.", e); }
                 const employesValides = getEmployesValides(employesRows);
                 const panierMoyenParEmploye = getPanierMoyenParEmploye(employesRows);
 
                 const derniereClotureRaw = getConfigValue(configRows, 'DERNIERE_CLOTURE');
-                const derniereCloture = derniereClotureRaw ? parseGvizDate(derniereClotureRaw) : new Date(2000, 0, 1);
+                const derniereCloture = derniereClotureRaw ? parseDateFrancaise(derniereClotureRaw) : new Date(2000, 0, 1);
 
                 let recetteSemaine = 0;
                 const perfSemaine = {};
                 for (let i = 0; i < ventesRows.length; i++) {
                     const row = ventesRows[i];
-                    if (!row.c[0] || !row.c[0].v) continue;
-                    const date = parseGvizDate(row.c[0].v);
+                    if (!row.c[0] || !row.nom) continue;
+                    const date = parseDateFrancaise(row.nom);
                     if (!date || date <= derniereCloture) continue;
                     const total = parseFloat(row.c[9]?.v) || 0;
                     const salarie = row.c[3]?.v || "Non renseigné";
@@ -1059,8 +1043,8 @@
                 const fideliteParEmploye = {};
                 for (let i = 0; i < facturesRows.length; i++) {
                     const row = facturesRows[i];
-                    if (!row.c[0] || !row.c[0].v) continue; // pas de numéro de facture
-                    const date = parseGvizDate(row.c[1]?.v);
+                    if (!row.c[0] || !row.nom) continue; // pas de numéro de facture
+                    const date = parseDateFrancaise(row.c[1]?.v);
                     if (!date || date <= derniereCloture) continue;
                     const salarie = String(row.c[3]?.v || "Non renseigné").trim();
                     if (!employesValides.has(salarie)) continue;
@@ -1073,8 +1057,8 @@
                 let depensesSemaine = 0;
                 for (let i = 0; i < chargesRows.length; i++) {
                     const row = chargesRows[i];
-                    if (!row.c[0] || !row.c[0].v) continue;
-                    const date = parseDateFrancaise(row.c[0].v);
+                    if (!row.c[0] || !row.nom) continue;
+                    const date = parseDateFrancaise(row.nom);
                     if (!date || date <= derniereCloture) continue;
                     depensesSemaine += parseFloat(row.c[3]?.v) || 0;
                 }
@@ -1128,7 +1112,7 @@
             let valeurStock = 0;
             for (let i = 0; i < produitsRows.length; i++) {
                 const row = produitsRows[i];
-                if (!row.c[0] || !row.c[0].v) continue;
+                if (!row.c[0] || !row.nom) continue;
                 const coutGrossiste = parseFloat(row.c[4]?.v) || 0;
                 const stock = parseFloat(row.c[5]?.v) || 0;
                 valeurStock += coutGrossiste * stock;
@@ -1251,8 +1235,8 @@
             jours.forEach(j => { recettesParJour[cleJour(j)] = 0; depensesParJour[cleJour(j)] = 0; });
 
             ventesRows.forEach(row => {
-                if (!row.c[0] || !row.c[0].v) return;
-                const date = parseGvizDate(row.c[0].v);
+                if (!row.c[0] || !row.nom) return;
+                const date = parseDateFrancaise(row.nom);
                 if (!date || date <= derniereCloture) return;
                 const cle = cleJour(date);
                 if (recettesParJour[cle] === undefined) return;
@@ -1260,8 +1244,8 @@
             });
 
             chargesRows.forEach(row => {
-                if (!row.c[0] || !row.c[0].v) return;
-                const date = parseDateFrancaise(row.c[0].v);
+                if (!row.c[0] || !row.nom) return;
+                const date = parseDateFrancaise(row.nom);
                 if (!date || date <= derniereCloture) return;
                 const cle = cleJour(date);
                 if (depensesParJour[cle] === undefined) return;
@@ -1334,9 +1318,9 @@
 
             for (let i = 0; i < histRows.length; i++) {
                 const row = histRows[i];
-                if (!row.c[0] || !row.c[0].v) continue;
-                const d = parseGvizDate(row.c[0].v);
-                labels.push(d ? d.toLocaleDateString('fr-FR') : row.c[0].v);
+                if (!row.c[0] || !row.nom) continue;
+                const d = parseDateFrancaise(row.nom);
+                labels.push(d ? d.toLocaleDateString('fr-FR') : row.nom);
                 recettes.push(parseFloat(row.c[3]?.v) || 0);
                 benefices.push(parseFloat(row.c[8]?.v) || 0);
             }
@@ -1504,10 +1488,10 @@
             const dot = document.getElementById('syncDot');
             const text = document.getElementById('syncText');
             dot.classList.remove('warn', 'error');
-            text.textContent = 'Connexion au Google Sheet…';
+            text.textContent = 'Connexion à Supabase…';
 
             try{
-                const res = await Promise.reject(new Error('Source historique désactivée'));
+                const res = await Promise.reject(new Error('Source Supabase'));
                 if(!res.ok) throw new Error('HTTP '+res.status);
                 const csvText = await res.text();
                 const rows = parseCSV(csvText);
@@ -1532,7 +1516,7 @@
                 text.textContent = `Connecté — ${invoices.length} facture(s) reconnue(s) sur ${rows.length} ligne(s) au total dans le Sheet · ${new Date().toLocaleTimeString('fr-CA')}`;
             } catch(err){
                 dot.classList.add('error');
-                text.textContent = "Impossible de lire le Google Sheet. Vérifiez qu'il est partagé en \"Toute personne disposant du lien peut consulter\" et qu'aucun filtre n'est actif sur la feuille. (" + err.message + ")";
+                text.textContent = "Impossible de charger les données depuis Supabase. Vérifiez qu'il est partagé en \"Toute personne disposant du lien peut consulter\" et qu'aucun filtre n'est actif sur la feuille. (" + err.message + ")";
             }
 
             resetFilterOptions();
@@ -1680,10 +1664,10 @@
                 
                 // Récupérer les données nécessaires
                 const [configRes, histRes, ventesRes, chargesRes] = await Promise.all([
-                    fetch(gvizUrl('CONFIG')).then(r => r.text()),
-                    fetch(gvizUrl('HISTORIQUE_SEMAINES')).then(r => r.text()),
-                    fetch(gvizUrl('VENTES_BRUTES')).then(r => r.text()),
-                    fetch(gvizUrl('💰 Charges')).then(r => r.text())
+                    SettingsService.getAll({ limit: 1000 }),
+                    executeSupabase(window.supabaseClient.from('historique_semaines').select('*').order('date_debut', { ascending: false }).limit(1000)),
+                    executeSupabase(window.supabaseClient.from('ventes_brutes').select('*').order('date_vente', { ascending: false }).limit(1000)),
+                    executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000))
                 ]);
 
                 const configRows = JSON.parse(configRes.substring(47, configRes.length - 2)).table.rows;
@@ -1693,23 +1677,23 @@
 
                 // Récupérer la date de dernière clôture
                 const derniereClotureRaw = getConfigValue(configRows, 'DERNIERE_CLOTURE');
-                const derniereCloture = derniereClotureRaw ? parseGvizDate(derniereClotureRaw) : new Date(2000, 0, 1);
+                const derniereCloture = derniereClotureRaw ? parseDateFrancaise(derniereClotureRaw) : new Date(2000, 0, 1);
 
                 // Calculer les données de la semaine en cours
                 let recetteSemaine = 0;
                 let depensesSemaine = 0;
 
                 ventesRows.forEach(row => {
-                    if (!row.c[1] || !row.c[1].v) return;
-                    const date = parseGvizDate(row.c[1].v);
+                    if (!row.c[1] || !row.valeur) return;
+                    const date = parseDateFrancaise(row.valeur);
                     if (!date || date <= derniereCloture) return;
                     const total = parseFloat(row.c[5]?.v) || 0;
                     recetteSemaine += total;
                 });
 
                 chargesRows.forEach(row => {
-                    if (!row.c[0] || !row.c[0].v) return;
-                    const date = parseGvizDate(row.c[0].v);
+                    if (!row.c[0] || !row.nom) return;
+                    const date = parseDateFrancaise(row.nom);
                     if (!date || date <= derniereCloture) return;
                     depensesSemaine += parseFloat(row.c[3]?.v) || 0;
                 });
@@ -1772,9 +1756,9 @@
             const sorted = histRows.slice().reverse();
 
             sorted.forEach(row => {
-                if (!row.c[0] || !row.c[0].v) return;
+                if (!row.c[0] || !row.nom) return;
                 
-                const date = parseGvizDate(row.c[0].v);
+                const date = parseDateFrancaise(row.nom);
                 const recette = parseFloat(row.c[3]?.v) || 0;
                 const depenses = parseFloat(row.c[4]?.v) || 0;
                 const brut = parseFloat(row.c[5]?.v) || 0;
@@ -1862,7 +1846,7 @@
                 label.textContent = 'Chargement...';
                 
                 // Récupérer les données des charges
-                const res = await fetch(gvizUrl('💰 Charges'));
+                const res = await executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000));
                 const text = await res.text();
                 const chargesRows = JSON.parse(text.substring(47, text.length - 2)).table.rows;
 
@@ -1872,9 +1856,9 @@
                 const types = new Set();
 
                 chargesRows.forEach(row => {
-                    if (!row.c[0] || !row.c[0].v) return;
+                    if (!row.c[0] || !row.nom) return;
                     
-                    const dateStr = row.c[0].v;
+                    const dateStr = row.nom;
                     const date = parseDateFrancaise(dateStr);
                     const type = row.c[1]?.v || 'Non spécifié';
                     const description = row.c[2]?.v || '';
