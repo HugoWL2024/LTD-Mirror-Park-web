@@ -1409,36 +1409,16 @@
         // ============================================================
         // OFFRES GROUPÉES (BUNDLES)
         // ------------------------------------------------------------
-        // Les offres sont chargées automatiquement depuis l'onglet
-        // Google Sheet "🎁 Offres" (voir buildBundlesFromSheet et
-        // l'appel dans init()). Pour ajouter/modifier/supprimer une
-        // offre, il suffit d'éditer cet onglet — pas besoin de toucher
-        // au code.
-        //
-        // Format attendu de l'onglet "🎁 Offres" :
-        // Colonne A : Nom de l'offre
-        // Colonne B : Prix de l'offre
-        // Colonnes C,D : Produit 1 / Qté 1
-        // Colonnes E,F : Produit 2 / Qté 2
-        // Colonnes G,H : Produit 3 / Qté 3
-        // ... (autant de paires Produit/Qté que nécessaire)
+        // Les offres sont chargées automatiquement depuis la table Supabase "offres"
+        // (voir buildBundlesFromOffers et l'appel dans init()).
+        // Format attendu : nom, statut, prix_offre, produits_json (JSONB).
+        // Seules les offres avec statut = "actif" sont prises en compte.
         // ============================================================
         let BUNDLES = [];
 
         // Construit le tableau BUNDLES à partir des lignes brutes de
         // l'onglet "🎁 Offres" (format gviz, comme salarieData/data).
-        function buildBundlesFromSheet(rows) {
-            const bundles = [];
-            rows.forEach(r => {
-                if (!r.c[0] || !r.c[0].v || !r.c[1] || r.c[1].v === null || r.c[1].v === '') return;
-                const label = r.c[0].v;
-                const price = Number(r.c[1].v);
-                const items = [];
-                for (let idx = 2; idx < r.c.length - 1; idx += 2) {
-                    const prodCell = r.c[idx];
-                    const qtyCell = r.c[idx + 1];
-                    if (prodCell && prodCell.v && qtyCell && qtyCell.v) {
-                        items.push({ name: prodCell.v, qty: Number(qtyCell.v) });
+        );
                     }
                 }
                 if (items.length > 0) bundles.push({ label, items, price });
@@ -1797,25 +1777,25 @@
                     <span>Chargement du catalogue...</span>
                 </div>`;
             const [resE, resC, resO, resF, resCfg] = await Promise.all([
-                Promise.reject(new Error('Source historique désactivée')),
-                Promise.reject(new Error('Source historique désactivée')),
-                Promise.reject(new Error('Source historique désactivée')),
-                Promise.reject(new Error('Source historique désactivée')),
-                Promise.reject(new Error('Source historique désactivée'))
+                Promise.reject(new Error('Source Supabase')),
+                Promise.reject(new Error('Source Supabase')),
+                Promise.reject(new Error('Source Supabase')),
+                Promise.reject(new Error('Source Supabase')),
+                Promise.reject(new Error('Source Supabase'))
             ]);
             const [textE, textC, textO, textF, textCfg] = await Promise.all([resE.text(), resC.text(), resO.text(), resF.text(), resCfg.text()]);
             salarieData = JSON.parse(textE.substring(47, textE.length - 2)).table.rows;
             data = JSON.parse(textC.substring(47, textC.length - 2)).table.rows;
             try {
                 const offresRows = JSON.parse(textO.substring(47, textO.length - 2)).table.rows;
-                BUNDLES = buildBundlesFromSheet(offresRows);
+                BUNDLES = buildBundlesFromOffers(offresRows);
             } catch (e) {
                 console.warn("Onglet '🎁 Offres' introuvable ou vide — aucune offre chargée.", e);
                 BUNDLES = [];
             }
             try {
                 const fideliteRows = JSON.parse(textF.substring(47, textF.length - 2)).table.rows;
-                fideliteData = buildFideliteListFromSheet(fideliteRows);
+                fideliteData = fideliteRows.map(c => ({ tel: c.c[0]?.v || '', nom: c.c[1]?.v || '', prenom: c.c[2]?.v || '', points: Number(c.c[4]?.v) || 0 }));
             } catch (e) {
                 console.warn("Onglet '🎫 Fidélité' introuvable ou vide — autocomplétion fidélité désactivée.", e);
                 fideliteData = [];
@@ -1848,15 +1828,7 @@
         // Construit la liste légère { tel, nom, prenom, points } utilisée pour
         // l'autocomplétion, à partir des lignes brutes de l'onglet 🎫 Fidélité
         // (colonnes A Téléphone, B Nom, C Prénom, E Points).
-        function buildFideliteListFromSheet(rows) {
-            return rows
-                .filter(r => r.c[0] && r.c[0].v)
-                .map(r => ({
-                    tel: String(r.c[0].v),
-                    nom: r.c[1] ? r.c[1].v : '',
-                    prenom: r.c[2] ? r.c[2].v : '',
-                    points: r.c[4] ? Number(r.c[4].v) || 0 : 0
-                }));
+        ));
         }
 
         // Lance le polling automatique du stock. Annule un éventuel polling précédent pour éviter les doublons.
@@ -1877,7 +1849,7 @@
             syncLabel.classList.add('syncing');
 
             try {
-                const resC = await Promise.reject(new Error('Source historique désactivée'));
+                const resC = await Promise.reject(new Error('Source Supabase'));
                 const textC = await resC.text();
                 const newData = JSON.parse(textC.substring(47, textC.length - 2)).table.rows;
 
@@ -1915,10 +1887,10 @@
             // que les cartes créées par un autre caissier apparaissent rapidement
             // sans jamais toucher au client actuellement sélectionné à cette caisse.
             try {
-                const resF = await Promise.reject(new Error('Source historique désactivée'));
+                const resF = await Promise.reject(new Error('Source Supabase'));
                 const textF = await resF.text();
                 const fideliteRows = JSON.parse(textF.substring(47, textF.length - 2)).table.rows;
-                fideliteData = buildFideliteListFromSheet(fideliteRows);
+                fideliteData = fideliteRows.map(c => ({ tel: c.c[0]?.v || '', nom: c.c[1]?.v || '', prenom: c.c[2]?.v || '', points: Number(c.c[4]?.v) || 0 }));
                 // Si une recherche est en cours de saisie, on rafraîchit aussi les suggestions affichées
                 const telInput = document.getElementById('fidelite-tel');
                 if (telInput === document.activeElement) afficherSuggestionsFidelite(telInput.value);
@@ -1930,7 +1902,7 @@
             // ASSURANCE_PRIX_FIXE), pour qu'un changement dans le Sheet se reflète à
             // la caisse sans avoir besoin de cliquer sur "Actualiser".
             try {
-                const resCfg = await Promise.reject(new Error('Source historique désactivée'));
+                const resCfg = await Promise.reject(new Error('Source Supabase'));
                 const textCfg = await resCfg.text();
                 const configRows = JSON.parse(textCfg.substring(47, textCfg.length - 2)).table.rows;
                 appliquerConfigAffichage(configRows);
@@ -1992,8 +1964,8 @@
             const groups = {};
             for (let i = 0; i < data.length; i++) {
                 const row = data[i];
-                if (!row.c[1] || !row.c[1].v.toLowerCase().includes(search)) continue;
-                const cat = row.c[2] ? row.c[2].v : "Divers";
+                if (!row.nom || !row.nom.toLowerCase().includes(search)) continue;
+                const cat = row.categorie || "Divers";
                 if (!groups[cat]) groups[cat] = [];
                 groups[cat].push({ row, i });
             }
@@ -2010,13 +1982,13 @@
             for (let cat in groups) {
                 container.innerHTML += `<div class="cat-group"><h2 class="cat-title">${cat}</h2><div class="grid" id="grid-${cat}"></div></div>`;
                 groups[cat].forEach(item => {
-                    const stock = Number(item.row.c[5]?.v || 0);
-                    const prixPromo = item.row.c[9]?.v;
+                    const stock = Number(item.row.stock_total || 0);
+                    const prixPromo = item.row.prix_promo;
                     const isPromo = prixPromo && Number(prixPromo) > 0;
                     const isDisabled = stock <= 0;
                     const isLow = !isDisabled && stock <= 3;
-                    const price = Math.round(isPromo ? Number(prixPromo) : (item.row.c[3]?.v || 0));
-                    const image = item.row.c[8]?.v || '';
+                    const price = Math.round(isPromo ? Number(prixPromo) : (item.row.prix || 0));
+                    const image = item.row.image_url || '';
                     const stockClass = isDisabled ? 'stock-out' : (isLow ? 'stock-low' : '');
                     const stockLabel = isDisabled ? 'Épuisé' : `Stock : ${stock}`;
 
@@ -2025,7 +1997,7 @@
                             ${isPromo && !isDisabled ? '<span class="promo-tag">PROMO</span>' : ''}
                             ${isDisabled ? '<span class="out-tag">RUPTURE</span>' : ''}
                             <div class="item-img-wrap">${image ? `<img src="${image}">` : ''}</div>
-                            <p class="item-name">${item.row.c[1].v}</p>
+                            <p class="item-name">${item.row.nom}</p>
                             <p class="item-price">${fmt(price)}</p>
                             <span class="stock-tag ${stockClass}">${stockLabel}</span>
                         </div>`;
@@ -2165,13 +2137,13 @@
                 // rejoue le paiement et crée une facture en double.
                 const stockEnEchec = [];
                 await Promise.all(Object.entries(qteVendueParNom).map(async ([nom, qte]) => {
-                    const row = data.find(r => r.c[1]?.v === nom);
+                    const row = data.find(r => r.nom === nom);
                     if (!row) return;
-                    const stockSurface = Number(row.c[10]?.v || 0);
+                    const stockSurface = Number(row.stock_surface_vente || 0);
                     try {
                         // stock_total est une colonne générée par Postgres (somme des 3
                         // emplacements) : elle se recalcule seule, il ne faut jamais l'écrire.
-                        await ProductService.update(row.c[0].v, {
+                        await ProductService.update(row.id, {
                             stock_surface_vente: Math.max(0, stockSurface - qte)
                         });
                     } catch (error) {
@@ -2203,7 +2175,7 @@
                 const select = document.getElementById('salarie-select');
                 const previousValue = select.value || localStorage.getItem('salarieName') || '';
                 select.innerHTML = '<option value="">-- Choisir salarié --</option>';
-                salarieData.forEach(row => { const option = document.createElement('option'); option.value = row.c[0].v; option.text = row.c[0].v; select.add(option); });
+                salarieData.forEach(row => { const option = document.createElement('option'); option.value = row.nom; option.text = row.nom; select.add(option); });
                 select.value = previousValue;
                 updateSalarieInfo(); render(); startStockAutoSync();
             } catch (error) { console.error(error); document.getElementById('catalog-content').innerHTML = '<div class="loading-state">Erreur de chargement des données.</div>'; }

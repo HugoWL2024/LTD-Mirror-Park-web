@@ -421,7 +421,7 @@ tr.bas .badge-mini { background: var(--surface); color: var(--amber); border: 1p
                 <select id="salarie-select"><option value="">-- Qui es-tu ? --</option></select>
                 <div class="stat-box"><div class="label">Total dépenses</div><div class="value" id="total-depenses">0.00 $</div></div>
                 <div class="stat-box"><div class="label">Nombre d'entrées</div><div class="value" id="nb-depenses">0</div></div>
-                <div class="sidebar-footnote">Les totaux détaillés (Recette, Bénéfice, Impôt) sont disponibles dans l'onglet "📊 Dashboard" du Google Sheet.</div>
+                <div class="sidebar-footnote">Les totaux détaillés (Recette, Bénéfice, Impôt) sont disponibles dans l'onglet "📊 Dashboard" du Supabase.</div>
             </aside>
         </div>
     </section>
@@ -577,9 +577,7 @@ function showMessage(text, type = "info", durationMs = 4000) {
     if (durationMs > 0) statusTimeout = setTimeout(() => { box.style.display = 'none'; }, durationMs);
 }
 
-function gvizUrl(sheet) {
-    throw new Error('Google Sheets a été remplacé par Supabase.');
-}
+
 
 async function envoyerAction(payload) {
     try {
@@ -1006,9 +1004,9 @@ function renderDepenses(rows) {
     let total = 0, count = 0;
 
     rows.forEach(row => {
-        if (!row.c[0] || !row.c[0].v) return;
-        const date = row.c[0]?.v || '', categorie = row.c[1]?.v || '', description = row.c[2]?.v || '';
-        const montant = parseFloat(row.c[3]?.v) || 0, commentaire = row.c[4]?.v || '';
+        if (!row.date_charge) return;
+        const date = row.date_charge || '', categorie = row.categorie || '', description = row.description || '';
+        const montant = parseFloat(row.montant) || 0, commentaire = '';
         total += montant; count++;
         body.innerHTML += `<tr><td>${date}</td><td>${categorie}</td><td>${description}</td><td class="montant">${montant.toFixed(2)} $</td><td>${commentaire}</td></tr>`;
     });
