@@ -1085,7 +1085,7 @@
 
                 startAutoSync();
             } catch (e) {
-                showFatalError('init() a échoué : ' + e.message + ' — vérifie que les onglets CONFIG, VENTES_BRUTES, 💰 Charges, HISTORIQUE_SEMAINES, PERFORMANCE_EMPLOYES et 👥 Employés existent bien et sont accessibles publiquement en lecture.');
+                showFatalError('init() a échoué : ' + e.message + ' — vérifie que les onglets CONFIG, VENTES_BRUTES, Charges, HISTORIQUE_SEMAINES, PERFORMANCE_EMPLOYES et 👥 Employés existent bien et sont accessibles publiquement en lecture.');
             }
         }
 
@@ -1670,10 +1670,10 @@
                     executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000))
                 ]);
 
-                const configRows = JSON.parse(configRes.substring(47, configRes.length - 2)).table.rows;
-                const histRows = JSON.parse(histRes.substring(47, histRes.length - 2)).table.rows;
-                const ventesRows = JSON.parse(ventesRes.substring(47, ventesRes.length - 2)).table.rows;
-                const chargesRows = JSON.parse(chargesRes.substring(47, chargesRes.length - 2)).table.rows;
+                const configRows = configRes;
+                const histRows = histRes;
+                const ventesRows = ventesRes;
+                const chargesRows = chargesRes;
 
                 // Récupérer la date de dernière clôture
                 const derniereClotureRaw = getConfigValue(configRows, 'DERNIERE_CLOTURE');
@@ -1847,8 +1847,7 @@
                 
                 // Récupérer les données des charges
                 const res = await executeSupabase(window.supabaseClient.from('charges').select('*').order('date_charge', { ascending: false }).limit(1000));
-                const text = await res.text();
-                const chargesRows = JSON.parse(text.substring(47, text.length - 2)).table.rows;
+                const chargesRows = res;
 
                 // Parser toutes les charges
                 allCharges = [];
